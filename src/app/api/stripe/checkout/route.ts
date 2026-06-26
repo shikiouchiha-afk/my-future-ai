@@ -5,7 +5,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: Request) {
   try {
-    const { userId, yearly } = await req.json();
+    const { userId } = await req.json();
 
     const priceId = process.env.STRIPE_PRICE_ID;
 
