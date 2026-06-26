@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  try {
-    const { messages } = await req.json();
+  try {const { messages }: { messages: { role: "user" | "assistant"; content: string }[] } =
+  await req.json();
+    
 
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",

@@ -163,7 +163,11 @@ export default function Page() {
     const text = input;
     setInput("");
 
-    const newMessages = [...messages, { role: "user", content: text }];
+    const newMessages: Message[] = [
+      ...messages,
+      { role: "user" as const, content: text },
+    ];
+
     setMessages(newMessages);
 
     const res = await fetch("/api/chat", {
