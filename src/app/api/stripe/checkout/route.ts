@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
     const userId = body.userId ?? "anonymous";
 
     const priceId = process.env.STRIPE_PRICE_ID;
+    const baseUrl = process.env.NEXT_PUBLIC_URL;
 
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json(
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!process.env.NEXT_PUBLIC_URL) {
+    if (!baseUrl) {
       return NextResponse.json(
         { error: "Missing NEXT_PUBLIC_URL" },
         { status: 500 }
@@ -34,27 +35,24 @@ export async function POST(req: NextRequest) {
     }
 
     const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
       payment_method_types: ["card"],
+      mode: "subscription",
       line_items: [
         {
           price: priceId,
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_URL}/pricing?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL}/pricing?canceled=true`,
+      success_url: `${baseUrl}/success`,
+      cancel_url: `${baseUrl}/cancel`,
       metadata: {
         userId,
       },
     });
 
-    return NextResponse.json({
-      url: session.url,
-    });
+    return NextResponse.json({ url: session.url });
   } catch (err: any) {
     console.error(err);
-
     return NextResponse.json(
       {
         error: err.message || "Internal Server Error",
