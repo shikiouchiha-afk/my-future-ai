@@ -1,16 +1,36 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-05-28.basil",
+});
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { userId } = await req.json();
+    const body = await req.json();
+    const userId = body.userId ?? "anonymous";
 
     const priceId = process.env.STRIPE_PRICE_ID;
 
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json(
+        { error: "Missing STRIPE_SECRET_KEY" },
+        { status: 500 }
+      );
+    }
+
     if (!priceId) {
-      throw new Error("Missing STRIPE_PRICE_ID");
+      return NextResponse.json(
+        { error: "Missing STRIPE_PRICE_ID" },
+        { status: 500 }
+      );
+    }
+
+    if (!process.env.NEXT_PUBLIC_URL) {
+      return NextResponse.json(
+        { error: "Missing NEXT_PUBLIC_URL" },
+        { status: 500 }
+      );
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -29,11 +49,19 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ url: session.url });
-  } catch (error: any) {
+    return NextResponse.json({
+      url: session.url,
+    });
+  } catch (err: any) {
+    console.error(err);
+
     return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
+      {
+        error: err.message || "Internal Server Error",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
