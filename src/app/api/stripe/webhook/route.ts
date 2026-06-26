@@ -1,51 +1,26 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(req: Request) {
   try {
-    const body = await req.text();
-    const sig = req.headers.get("stripe-signature")!;
+    const { userId } = await req.json();
 
-    const event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    const priceId = process.env.STRIPE_PRICE_ID;
+    if (!priceId) throw new Error("Missing STRIPE_PRICE_ID");
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      payment_method_types: ["card"],
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: `${process.env.NEXT_PUBLIC_URL}/pricing?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/pricing?canceled=true`,
+      metadata: { userId },
+    });
 
-      const userId = session.metadata?.userId;
-
-      if (!userId) {
-        return NextResponse.json({ ok: false, error: "Missing userId" });
-      }
-
-      const { error } = await supabase
-        .from("users")
-        .update({ plan: "premium" })
-        .eq("id", userId);
-
-      if (error) {
-        console.error(error);
-        return NextResponse.json({ ok: false });
-      }
-    }
-
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("Webhook error:", err.message);
-    return NextResponse.json(
-      { error: "Webhook failed" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
