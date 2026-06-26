@@ -12,10 +12,10 @@
     "@netlify/plugin-nextjs": "^5.15.12",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
-    "next": "^16.2.9",
+    "next": "14.2.5",
     "openai": "^6.42.0",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
     "stripe": "^22.3.0"
   },
   "devDependencies": {
@@ -24,7 +24,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "14.2.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
