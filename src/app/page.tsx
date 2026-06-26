@@ -3,70 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 
 /* =========================
-   TYPES
+   HYDRATION SAFE GUARD
 ========================= */
-
-type Message = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-type Goal = "fitness" | "money" | "study" | "mindset" | null;
-
-type Coach =
-  | "business"
-  | "fitness"
-  | "study"
-  | "life"
-  | "mindset";
-
-/* =========================
-   STORAGE HELPERS
-========================= */
-
-const save = (k: string, v: any) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(k, JSON.stringify(v));
-  }
-};
-
-const load = (k: string) => {
-  if (typeof window === "undefined") return null;
-  const v = localStorage.getItem(k);
-  return v ? JSON.parse(v) : null;
-};
-
-/* =========================
-   COACH PERSONALITY SYSTEM
-========================= */
-
-function coachStyle(coach: Coach | null) {
-  switch (coach) {
-    case "business":
-      return "Be sharp, direct, focus on money and execution.";
-    case "fitness":
-      return "Be strict, motivational, push discipline hard.";
-    case "study":
-      return "Be calm, structured, and educational.";
-    case "life":
-      return "Be balanced, supportive, reflective.";
-    case "mindset":
-    default:
-      return "Be motivational, disciplined, and focused.";
-  }
-}
-
-/* =========================
-   MAIN PAGE
-========================= */
-
 export default function Page() {
+  const [mounted, setMounted] = useState(false);
+
   const [step, setStep] = useState<"onboarding" | "app">("onboarding");
+  const [goal, setGoal] = useState<"fitness" | "money" | "study" | "mindset" | null>(null);
+  const [coach, setCoach] = useState<"business" | "fitness" | "study" | "life" | "mindset" | null>(null);
 
-  const [goal, setGoal] = useState<Goal>(null);
-  const [coach, setCoach] = useState<Coach | null>(null);
-
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [input, setInput] = useState("");
 
   const [xp, setXp] = useState(0);
@@ -75,10 +21,33 @@ export default function Page() {
   const prevLevel = useRef(1);
 
   /* =========================
-     LOAD MEMORY
+     SAFE STORAGE
   ========================= */
+  const isBrowser = () => typeof window !== "undefined";
 
+  const save = (k: string, v: any) => {
+    if (!isBrowser()) return;
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+    } catch {}
+  };
+
+  const load = (k: string) => {
+    if (!isBrowser()) return null;
+    try {
+      const v = localStorage.getItem(k);
+      return v ? JSON.parse(v) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  /* =========================
+     MOUNT FIX (IMPORTANT)
+  ========================= */
   useEffect(() => {
+    setMounted(true);
+
     const g = load("goal");
     const c = load("coach");
 
@@ -90,13 +59,31 @@ export default function Page() {
     if (c) setCoach(c);
   }, []);
 
+  if (!mounted) return null;
+
+  /* =========================
+     COACH STYLE
+  ========================= */
+  function coachStyle(coach: any) {
+    switch (coach) {
+      case "business":
+        return "Be sharp, direct, focus on money and execution.";
+      case "fitness":
+        return "Be strict, motivational, push discipline hard.";
+      case "study":
+        return "Be calm, structured, and educational.";
+      case "life":
+        return "Be balanced, supportive, reflective.";
+      default:
+        return "Be motivational, disciplined, and focused.";
+    }
+  }
+
   /* =========================
      LEVEL SYSTEM
   ========================= */
-
   useEffect(() => {
     const newLevel = Math.floor(xp / 100) + 1;
-
     if (newLevel > prevLevel.current) {
       prevLevel.current = newLevel;
       setLevel(newLevel);
@@ -104,11 +91,10 @@ export default function Page() {
   }, [xp]);
 
   /* =========================
-     START FLOW (GOAL + COACH)
+     START GOAL
   ========================= */
-
-  const startGoal = (g: Goal) => {
-    const autoCoach: Coach =
+  const startGoal = (g: any) => {
+    const autoCoach =
       g === "money"
         ? "business"
         : g === "fitness"
@@ -126,21 +112,14 @@ export default function Page() {
     setStep("app");
 
     setMessages([
-      {
-        role: "assistant",
-        content: `🔥 Coach Activated: ${autoCoach}`,
-      },
-      {
-        role: "assistant",
-        content: `🎯 Daily Mission: ${g}`,
-      },
+      { role: "assistant", content: `🔥 Coach Activated: ${autoCoach}` },
+      { role: "assistant", content: `🎯 Daily Mission: ${g}` },
     ]);
   };
 
   /* =========================
      SEND MESSAGE
   ========================= */
-
   const send = async () => {
     if (!input.trim()) return;
 
@@ -154,10 +133,7 @@ export default function Page() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [
-            ...messages,
-            { role: "user", content: text },
-          ].slice(-10),
+          messages: [...messages, { role: "user", content: text }].slice(-10),
           goal,
           coach,
           system: coachStyle(coach),
@@ -172,21 +148,17 @@ export default function Page() {
       ]);
 
       setXp((p) => p + 10);
-    } catch (err) {
+    } catch {
       setMessages((p) => [
         ...p,
-        {
-          role: "assistant",
-          content: "⚠️ AI error — check backend",
-        },
+        { role: "assistant", content: "⚠️ AI error — check backend" },
       ]);
     }
   };
 
   /* =========================
-     ONBOARDING SCREEN
+     ONBOARDING
   ========================= */
-
   if (step === "onboarding") {
     return (
       <div className="onboard">
@@ -241,14 +213,10 @@ export default function Page() {
   /* =========================
      MAIN APP
   ========================= */
-
   return (
     <div className="space">
-
-      {/* BACKGROUND */}
       <div className="bg" />
 
-      {/* SIDEBAR */}
       <div className="sidebar">
         <h3>XP COACH</h3>
         <p>XP: {xp}</p>
@@ -257,9 +225,7 @@ export default function Page() {
         <p>Coach: {coach}</p>
       </div>
 
-      {/* MAIN CHAT */}
       <div className="main">
-
         <div className="chat">
           {messages.map((m, i) => (
             <div key={i} className={`row ${m.role}`}>
@@ -268,7 +234,6 @@ export default function Page() {
           ))}
         </div>
 
-        {/* INPUT */}
         <div className="bottom">
           <input
             value={input}
@@ -278,13 +243,11 @@ export default function Page() {
           <button onClick={send}>Send</button>
         </div>
 
-        {/* XP BAR */}
         <div className="xpBar">
           <div className="fill" style={{ width: `${xp % 100}%` }} />
         </div>
       </div>
 
-      {/* STYLES */}
       <style jsx>{`
         .space {
           display: flex;
@@ -296,11 +259,10 @@ export default function Page() {
         .bg {
           position: absolute;
           inset: 0;
-          background:
-            radial-gradient(circle at 20% 20%, rgba(99,102,241,0.25), transparent 40%),
-            radial-gradient(circle at 80% 30%, rgba(0,180,255,0.2), transparent 40%),
-            radial-gradient(circle at 50% 80%, rgba(147,51,234,0.2), transparent 50%),
-            #020617;
+          background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.25), transparent 40%),
+                      radial-gradient(circle at 80% 30%, rgba(0,180,255,0.2), transparent 40%),
+                      radial-gradient(circle at 50% 80%, rgba(147,51,234,0.2), transparent 50%),
+                      #020617;
         }
 
         .sidebar {
@@ -322,7 +284,6 @@ export default function Page() {
           overflow-y: auto;
         }
 
-        /* FIXED CHAT SIDES */
         .row {
           display: flex;
           margin-bottom: 10px;
