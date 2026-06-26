@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
+
+/* =========================
+   SAFE SUPABASE (BUILD FIX)
+========================= */
+const supabase =
+  typeof window !== "undefined"
+    ? createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+      )
+    : null;
 
 type Message = {
   role: "user" | "assistant";
@@ -27,22 +38,24 @@ export default function Dashboard() {
   const [messagesCount, setMessagesCount] = useState(0);
   const [xpToday, setXpToday] = useState(0);
 
+  /* =========================
+     SAFE AUTH (NO BUILD CRASH)
+  ========================= */
   useEffect(() => {
     const getUser = async () => {
       try {
+        if (!supabase) return;
+
         const { data, error } = await supabase.auth.getUser();
 
-        // ✅ FIX: ignore Supabase "missing session" error silently
         if (error) {
-          console.log("Auth not ready yet:", error.message);
-          setUserId(null);
+          console.log("Auth not ready:", error.message);
           return;
         }
 
         setUserId(data?.user?.id ?? null);
       } catch (err) {
-        console.log("Auth session not available yet");
-        setUserId(null);
+        console.log("Auth error");
       }
     };
 
@@ -132,7 +145,6 @@ export default function Dashboard() {
 
       <div className="chatBox">
 
-        {/* TOP BAR */}
         <div className="top">
           <div>🌌 My Future AI</div>
 
@@ -152,7 +164,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* MESSAGES */}
         <div className="messages">
           {messages.map((m, i) => (
             <div key={i} className={`msg ${m.role}`}>
@@ -161,7 +172,6 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* INPUT */}
         <div className="inputRow">
           <input
             value={input}
@@ -171,13 +181,11 @@ export default function Dashboard() {
           <button onClick={sendMessage}>Send</button>
         </div>
 
-        {/* XP */}
         <div className="analytics">
           📊 Messages: {messagesCount} | ⚡ XP Today: {xpToday}
         </div>
       </div>
 
-      {/* ❗ YOUR ORIGINAL DESIGN IS 100% UNTOUCHED */}
       <style jsx>{`
         .space {
           height: 100vh;
