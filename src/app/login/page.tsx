@@ -4,48 +4,49 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase =
+  typeof window !== "undefined"
+    ? createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+    : null;
 
 export default function LoginPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("LOGIN CLICKED");
+    if (!supabase) return;
 
-    setLoading(true);
-    setError("");
+    try {
+      setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      console.log("LOGIN ERROR:", error.message);
-      setError(error.message);
+      if (error) {
+        console.log("Login error:", error.message);
+        alert("Login failed: " + error.message);
+        return;
+      }
+
+      if (data?.user) {
+        // session is now stored automatically
+        router.push("/dashboard");
+      }
+    } catch (err) {
+      console.log("Login crash:", err);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    if (data?.user) {
-      console.log("LOGIN SUCCESS:", data.user.email);
-
-      // this is now a REAL session login (remembers user)
-      router.push("/dashboard");
-    }
-
-    setLoading(false);
   };
 
   return (
@@ -71,13 +72,7 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          {error && (
-            <p style={{ color: "red", marginTop: "10px" }}>
-              {error}
-            </p>
-          )}
-
-          <button type="submit" disabled={loading}>
+          <button type="submit">
             {loading ? "ENTERING..." : "ENTER SYSTEM"}
           </button>
 
@@ -98,7 +93,6 @@ export default function LoginPage() {
           justify-content: center;
           align-items: center;
           position: relative;
-
           background:
             url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2000")
             center/cover no-repeat;
@@ -113,19 +107,13 @@ export default function LoginPage() {
         .card {
           position: relative;
           z-index: 2;
-
           width: 420px;
           padding: 40px;
-
           border-radius: 20px;
-
           background: rgba(255, 255, 255, 0.08);
           backdrop-filter: blur(18px);
-
           border: 1px solid rgba(255, 255, 255, 0.15);
-
           text-align: center;
-
           box-shadow: 0 0 60px rgba(0, 150, 255, 0.2);
         }
 
@@ -145,39 +133,23 @@ export default function LoginPage() {
           width: 100%;
           padding: 14px;
           margin-bottom: 12px;
-
           border-radius: 10px;
           border: 1px solid rgba(255, 255, 255, 0.2);
-
           background: rgba(255, 255, 255, 0.08);
           color: white;
-
           outline: none;
-        }
-
-        input::placeholder {
-          color: rgba(255, 255, 255, 0.5);
         }
 
         button {
           width: 100%;
           padding: 14px;
           margin-top: 10px;
-
           border-radius: 10px;
           border: none;
-
           background: linear-gradient(90deg, #007cf0, #00dfd8);
-
           color: white;
           font-weight: bold;
-
           cursor: pointer;
-        }
-
-        button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 0 25px rgba(0, 223, 216, 0.5);
         }
 
         .secondary {
