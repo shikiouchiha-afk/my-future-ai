@@ -119,6 +119,13 @@ export default function Page() {
   const [level, setLevel] = useState(1);
   const [shake, setShake] = useState(false);
 
+  /* 🔥 FIXED: PLAN SYSTEM (THIS WAS MISSING) */
+  const [plan] = useState<"basic" | "premium">(
+    typeof window !== "undefined"
+      ? (localStorage.getItem("plan") as "basic" | "premium") || "basic"
+      : "basic"
+  );
+
   const prevLevel = useRef(1);
 
   /* LEVEL SYSTEM */
@@ -266,12 +273,15 @@ export default function Page() {
     <div className={`space ${shake ? "shake" : ""}`}>
       <div className="bg" />
       <ShootingStars />
-
       <div className="orb" />
 
       <div className="sidebar">
         <p>XP: {xp}</p>
         <p>Level: {level}</p>
+
+        {/* 🔥 FIXED: PLAN DISPLAY SAFE */}
+        <p>Plan: {plan}</p>
+
         <p>Coach: {coach}</p>
       </div>
 
@@ -285,10 +295,7 @@ export default function Page() {
         </div>
 
         <div className="bottom">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
+          <input value={input} onChange={(e) => setInput(e.target.value)} />
           <button onClick={send}>Send</button>
         </div>
       </div>
@@ -376,12 +383,6 @@ export default function Page() {
           color: white;
           padding: 10px 14px;
           border-radius: 10px;
-        }
-
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.2); }
-          100% { transform: scale(1); }
         }
       `}</style>
     </div>

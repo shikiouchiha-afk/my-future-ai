@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  // safer: let Stripe auto-handle API version
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {});
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,8 +25,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing NEXT_PUBLIC_URL" }, { status: 500 });
     }
 
-    console.log("Stripe checkout request:", { userId, yearly, priceId });
-
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [
@@ -37,32 +33,20 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/success`,
+
+      success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/cancel`,
+
       metadata: {
         userId,
         plan: yearly ? "yearly" : "monthly",
       },
     });
 
-    console.log("Stripe session created:", session.id);
-
-    if (!session.url) {
-      console.error("Stripe session missing URL:", session);
-      return NextResponse.json(
-        { error: "Stripe session failed: no URL returned" },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("Stripe FULL ERROR:", err);
-
     return NextResponse.json(
-      {
-        error: err.message || "Internal Server Error",
-      },
+      { error: err.message || "Internal Server Error" },
       { status: 500 }
     );
   }
