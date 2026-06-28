@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
+
+/* =========================
+   SUPABASE CLIENT (SAFE)
+========================= */
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function SignupPage() {
   const router = useRouter();
@@ -9,17 +18,38 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
 
-    console.log("Signup:", {
-      name,
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          },
+        },
+      });
 
-    router.push("/dashboard");
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      // success → send to login (real SaaS flow)
+      router.push("/login");
+    } catch (err: any) {
+      setError(err.message || "Signup failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -55,8 +85,12 @@ export default function SignupPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <button type="submit">
-            CREATE ACCOUNT
+          {error && (
+            <p style={{ color: "red", fontSize: "12px" }}>{error}</p>
+          )}
+
+          <button type="submit" disabled={loading}>
+            {loading ? "CREATING..." : "CREATE ACCOUNT"}
           </button>
 
           <button
@@ -158,11 +192,7 @@ export default function SignupPage() {
           border: none;
           border-radius: 12px;
 
-          background: linear-gradient(
-            90deg,
-            #008cff,
-            #00c3ff
-          );
+          background: linear-gradient(90deg, #008cff, #00c3ff);
 
           color: white;
           font-size: 1rem;
