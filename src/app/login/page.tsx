@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
@@ -19,10 +19,30 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 🔒 if already logged in → skip login page
+  useEffect(() => {
+    const checkSession = async () => {
+      if (!supabase) return;
+
+      const { data } = await supabase.auth.getSession();
+
+      if (data.session) {
+        router.push("/dashboard");
+      }
+    };
+
+    checkSession();
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!supabase) return;
+
+    if (!email || !password) {
+      alert("Enter email and password first");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -33,17 +53,15 @@ export default function LoginPage() {
       });
 
       if (error) {
-        console.log("Login error:", error.message);
-        alert("Login failed: " + error.message);
+        alert(error.message);
         return;
       }
 
-      if (data?.user) {
-        // session is now stored automatically
+      if (data.session) {
         router.push("/dashboard");
       }
     } catch (err) {
-      console.log("Login crash:", err);
+      console.log(err);
     } finally {
       setLoading(false);
     }
@@ -73,7 +91,7 @@ export default function LoginPage() {
           />
 
           <button type="submit">
-            {loading ? "ENTERING..." : "ENTER SYSTEM"}
+            {loading ? "VERIFYING..." : "ENTER SYSTEM"}
           </button>
 
           <button
@@ -93,8 +111,7 @@ export default function LoginPage() {
           justify-content: center;
           align-items: center;
           position: relative;
-          background:
-            url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2000")
+          background: url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2000")
             center/cover no-repeat;
         }
 
