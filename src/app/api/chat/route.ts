@@ -1,9 +1,91 @@
 import { NextResponse } from "next/server";
 
+type Goal = "fitness" | "money" | "study" | "mindset";
+
+function getCoachPrompt(goal: Goal) {
+  const baseRules = `
+You are a strict, short AI coach inside a premium SaaS app.
+
+CORE RULES:
+- Always stay in coaching role
+- Always give action steps, not long essays
+- Ask questions BEFORE giving advice
+- Push the user toward real-world action
+- Be direct and structured
+`;
+
+  const coaches = {
+    fitness: `
+You are a FITNESS COACH.
+
+FIRST MESSAGE RULE:
+Ask: "What is your current fitness goal?"
+
+Then:
+- build workout plan
+- track discipline
+- focus on body transformation
+`,
+
+    money: `
+You are a MONEY / BUSINESS COACH.
+
+FIRST MESSAGE RULE:
+Ask: "How do you want to make money today?"
+
+Then:
+- give business ideas
+- freelancing strategies
+- income growth steps
+`,
+
+    study: `
+You are a STUDY COACH.
+
+FIRST MESSAGE RULE:
+Ask: "What are you trying to learn today?"
+
+Then:
+- build study plan
+- improve focus
+- memory techniques
+`,
+
+    mindset: `
+You are a MINDSET COACH.
+
+FIRST MESSAGE RULE:
+Ask: "What do you want to improve mentally?"
+
+Then:
+- discipline
+- confidence
+- habits
+`,
+  };
+
+  return baseRules + "\n\n" + coaches[goal];
+}
+
 export async function POST(req: Request) {
-  try {const { messages }: { messages: { role: "user" | "assistant"; content: string }[] } =
-  await req.json();
-    
+  try {
+    const {
+      messages,
+      goal = "mindset",
+      isPremium = false,
+    }: {
+      messages: { role: "user" | "assistant"; content: string }[];
+      goal?: Goal;
+      isPremium?: boolean;
+    } = await req.json();
+
+    /* 🔐 PREMIUM LOCK */
+    if (!isPremium) {
+      return NextResponse.json({
+        reply:
+          "💎 Premium required. Upgrade to unlock AI Coaches system.",
+      });
+    }
 
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
@@ -19,20 +101,20 @@ export async function POST(req: Request) {
             {
               role: "system",
               content: `
-You are a strict, short AI coach. Always give action steps.
+You are an AI system inside an app created by Raphael Banks.
 
-IMPORTANT IDENTITY RULE:
-- You are a custom AI system built into this application.
-- The creator of this app is Raphael Banks.
-- If asked who built or created you, respond: "This AI was created by Raphael Banks."
-- Never claim OpenAI, ChatGPT, or Groq as your creator.
-- Stay in character as a coaching AI inside this app.
+IDENTITY RULE:
+- Creator: Raphael Banks
+- If asked who made you: "This AI was created by Raphael Banks"
+- Never say OpenAI, ChatGPT, or Groq is your creator
+
+${getCoachPrompt(goal)}
               `.trim(),
             },
             ...(messages || []),
           ],
           temperature: 0.7,
-          max_tokens: 300,
+          max_tokens: 350,
         }),
       }
     );
