@@ -4,13 +4,15 @@ import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 /* =========================
-   SAFE SUPABASE (BUILD FIX)
+   SAFE SUPABASE (NO CRASH MODE)
 ========================= */
 const supabase =
-  typeof window !== "undefined"
+  typeof window !== "undefined" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     ? createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
       )
     : null;
 
@@ -38,24 +40,23 @@ export default function Dashboard() {
   const [messagesCount, setMessagesCount] = useState(0);
   const [xpToday, setXpToday] = useState(0);
 
+  const [ready, setReady] = useState(false);
+
   /* =========================
-     SAFE AUTH (NO BUILD CRASH)
+     SAFE AUTH (NO BLOCKING NAV)
   ========================= */
   useEffect(() => {
+    setReady(true);
+
     const getUser = async () => {
       try {
         if (!supabase) return;
 
-        const { data, error } = await supabase.auth.getUser();
-
-        if (error) {
-          console.log("Auth not ready:", error.message);
-          return;
-        }
+        const { data } = await supabase.auth.getUser();
 
         setUserId(data?.user?.id ?? null);
       } catch (err) {
-        console.log("Auth error");
+        console.log("Auth error (safe ignore)");
       }
     };
 
@@ -125,16 +126,27 @@ export default function Dashboard() {
           newLevel += 1;
 
           setLevelUp(true);
-          setTimeout(() => setLevelUp(false), 1500);
+          setTimeout(() => setLevelUp(false), 1200);
         }
 
         setLevel(newLevel);
         return newXP;
       });
     } catch (err) {
-      console.log("Chat error:", err);
+      console.log("Chat error safe:", err);
     }
   };
+
+  /* =========================
+     SAFE LOADING (PREVENT CRASH BLANK)
+  ========================= */
+  if (!ready) {
+    return (
+      <div style={{ color: "white", padding: 20 }}>
+        Loading dashboard...
+      </div>
+    );
+  }
 
   return (
     <div className="space">
