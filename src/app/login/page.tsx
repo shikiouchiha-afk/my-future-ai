@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function LoginPage() {
   const router = useRouter();
@@ -9,15 +15,37 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     console.log("LOGIN CLICKED");
 
-    // small delay to detect dashboard crash issues
-    setTimeout(() => {
+    setLoading(true);
+    setError("");
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      console.log("LOGIN ERROR:", error.message);
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    if (data?.user) {
+      console.log("LOGIN SUCCESS:", data.user.email);
+
+      // this is now a REAL session login (remembers user)
       router.push("/dashboard");
-    }, 500);
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -43,7 +71,15 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <button type="submit">ENTER SYSTEM</button>
+          {error && (
+            <p style={{ color: "red", marginTop: "10px" }}>
+              {error}
+            </p>
+          )}
+
+          <button type="submit" disabled={loading}>
+            {loading ? "ENTERING..." : "ENTER SYSTEM"}
+          </button>
 
           <button
             type="button"
