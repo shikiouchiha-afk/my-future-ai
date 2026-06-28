@@ -8,6 +8,7 @@ export default function HomePage() {
   return (
     <div className="page">
       <div className="bg" />
+      <div className="neuralGrid" />
       <div className="brainGlow" />
 
       <div className="container">
@@ -19,8 +20,8 @@ export default function HomePage() {
         </h1>
 
         <p className="subtitle">
-          A powerful multi-coach AI system designed for mindset, fitness,
-          money, business, learning, and personal transformation — all in one place.
+          A powerful multi-coach AI system designed for mindset, fitness, money,
+          business, learning, and personal transformation — all in one place.
         </p>
 
         <div className="buttons">
@@ -93,7 +94,7 @@ export default function HomePage() {
           overflow: hidden;
         }
 
-        /* background glow layers */
+        /* background glow */
         .bg {
           position: absolute;
           inset: 0;
@@ -104,22 +105,53 @@ export default function HomePage() {
           filter: blur(70px);
         }
 
-        /* AI brain glow */
-        .brainGlow {
+        /* neural moving grid */
+        .neuralGrid {
           position: absolute;
-          top: 15%;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 500px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(168,85,247,0.35), transparent 60%);
-          filter: blur(60px);
-          animation: float 6s ease-in-out infinite;
+          inset: 0;
+          background-image:
+            radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05) 1px, transparent 1px),
+            radial-gradient(circle at 70% 60%, rgba(255,255,255,0.05) 1px, transparent 1px),
+            radial-gradient(circle at 40% 80%, rgba(255,255,255,0.05) 1px, transparent 1px);
+          background-size: 200px 200px;
+          animation: gridMove 12s linear infinite;
+          opacity: 0.4;
         }
 
-        @keyframes float {
-          0%,100% { transform: translateX(-50%) translateY(0); }
-          50% { transform: translateX(-50%) translateY(-20px); }
+        @keyframes gridMove {
+          0% { transform: translateY(0px); }
+          100% { transform: translateY(-200px); }
+        }
+
+        /* BIG ANIMATED AI BRAIN */
+        .brainGlow {
+          position: absolute;
+          top: 8%;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 700px;
+          height: 700px;
+          border-radius: 50%;
+
+          background:
+            radial-gradient(circle at 30% 30%, rgba(168,85,247,0.7), transparent 40%),
+            radial-gradient(circle at 70% 60%, rgba(34,211,238,0.5), transparent 45%),
+            radial-gradient(circle at 50% 50%, rgba(99,102,241,0.4), transparent 60%);
+
+          filter: blur(80px);
+          animation: brainPulse 4s ease-in-out infinite;
+          opacity: 0.9;
+        }
+
+        @keyframes brainPulse {
+          0%, 100% {
+            transform: translateX(-50%) scale(1);
+            filter: blur(80px);
+          }
+          50% {
+            transform: translateX(-50%) scale(1.1);
+            filter: blur(100px);
+          }
         }
 
         .container {
@@ -265,8 +297,8 @@ export default function HomePage() {
           }
 
           .brainGlow {
-            width: 320px;
-            height: 320px;
+            width: 350px;
+            height: 350px;
           }
         }
       `}</style>
