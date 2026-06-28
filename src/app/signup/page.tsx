@@ -4,6 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
+/* =========================
+   SUPABASE CLIENT (SAFE)
+========================= */
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+/* =========================
+   PAGE
+========================= */
 export default function SignupPage() {
   const router = useRouter();
 
@@ -13,34 +24,52 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const getSupabase = () =>
-    createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-    );
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const supabase = getSupabase();
+    try {
+      // 1. CREATE AUTH USER
+      const { data, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name },
-      },
-    });
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
 
-    if (error) {
-      setError(error.message);
+      const user = data.user;
+
+      if (!user) {
+        setError("User creation failed");
+        setLoading(false);
+        return;
+      }
+
+      // 2. CREATE PROFILE (IMPORTANT FOR SaaS)
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: user.id,
+        email: user.email,
+        name: name,
+        is_premium: false,
+        created_at: new Date().toISOString(),
+      });
+
+      if (profileError) {
+        console.error(profileError);
+      }
+
+      // 3. SEND TO LOGIN
+      router.push("/login");
+    } catch (err: any) {
+      setError(err.message || "Signup failed");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.push("/login");
   };
 
   return (
@@ -115,11 +144,9 @@ export default function SignupPage() {
           width: 420px;
           padding: 35px;
           border-radius: 18px;
-
           background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.12);
           backdrop-filter: blur(20px);
-
           box-shadow: 0 0 60px rgba(0, 180, 255, 0.15);
           z-index: 2;
           text-align: center;
@@ -142,13 +169,10 @@ export default function SignupPage() {
           width: 100%;
           padding: 14px;
           margin-bottom: 12px;
-
           border-radius: 10px;
           border: 1px solid rgba(255,255,255,0.12);
-
           background: rgba(255,255,255,0.05);
           color: white;
-
           outline: none;
         }
 
@@ -160,19 +184,13 @@ export default function SignupPage() {
         button {
           width: 100%;
           padding: 14px;
-
           margin-top: 10px;
-
           border: none;
           border-radius: 10px;
-
           background: linear-gradient(90deg, #00b4ff, #7c3aed);
           color: white;
-
           font-weight: bold;
           cursor: pointer;
-
-          transition: 0.2s;
         }
 
         button:hover {

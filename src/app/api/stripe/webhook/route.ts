@@ -1,26 +1,52 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export async function POST(req: Request) {
-  try {
-    const { userId } = await req.json();
+  const sig = req.headers.get("stripe-signature");
 
-    const priceId = process.env.STRIPE_PRICE_ID;
-    if (!priceId) throw new Error("Missing STRIPE_PRICE_ID");
-
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      payment_method_types: ["card"],
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_URL}/pricing?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL}/pricing?canceled=true`,
-      metadata: { userId },
-    });
-
-    return NextResponse.json({ url: session.url });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  if (!sig) {
+    return new NextResponse("Missing signature", { status: 400 });
   }
+
+  const body = await req.text();
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (err: any) {
+    return new NextResponse(`Webhook Error: ${err.message}`, {
+      status: 400,
+    });
+  }
+
+  // ✅ PAYMENT SUCCESS
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as any;
+
+    const userId = session.metadata?.userId;
+
+    if (userId) {
+      await supabase
+        .from("profiles")
+        .update({
+          is_premium: true,
+        })
+        .eq("id", userId);
+    }
+  }
+
+  return NextResponse.json({ received: true });
 }
