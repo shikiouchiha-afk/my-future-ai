@@ -1,334 +1,308 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
 /* =========================
-   SAFE SUPABASE (NO CRASH MODE)
+   SUPABASE CLIENT
 ========================= */
+
 const supabase =
-  typeof window !== "undefined" &&
-  process.env.NEXT_PUBLIC_SUPABASE_URL &&
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  typeof window !== "undefined"
     ? createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
     : null;
+
+/* =========================
+   TYPES
+========================= */
 
 type Message = {
   role: "user" | "assistant";
   content: string;
 };
 
-export default function Dashboard() {
-  const [userId, setUserId] = useState<string | null>(null);
+type Goal = "fitness" | "money" | "study" | "mindset" | null;
+
+type Coach =
+  | "business"
+  | "fitness"
+  | "study"
+  | "life"
+  | "mindset"
+  | "therapist"
+  | "free";
+
+/* =========================
+   CORE LOGIC
+========================= */
+
+function generateMission(goal: string) {
+  const missions = {
+    fitness: "Do 10 pushups right now.",
+    money: "Write 1 way to make $ today.",
+    study: "Study focused for 15 minutes.",
+    mindset: "Write 3 goals for your life.",
+  };
+
+  return missions[goal as keyof typeof missions];
+}
+
+function rewardXP(goal: string) {
+  return 10 + (goal === "money" ? 8 : goal === "study" ? 6 : 5);
+}
+
+/* =========================
+   SHOOTING STARS
+========================= */
+
+function ShootingStars() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
+
+    let w = (canvas.width = window.innerWidth);
+    let h = (canvas.height = window.innerHeight);
+
+    const stars = Array.from({ length: 15 }).map(() => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      len: Math.random() * 60 + 20,
+      speed: Math.random() * 2 + 1,
+    }));
+
+    let frame: number;
+
+    const draw = () => {
+      ctx.clearRect(0, 0, w, h);
+
+      for (const s of stars) {
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x + s.len, s.y + s.len);
+        ctx.strokeStyle = "rgba(255,255,255,0.6)";
+        ctx.stroke();
+
+        s.x += s.speed;
+        s.y += s.speed;
+
+        if (s.x > w || s.y > h) {
+          s.x = Math.random() * w;
+          s.y = 0;
+        }
+      }
+
+      frame = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 1,
+        pointerEvents: "none",
+      }}
+    />
+  );
+}
+
+/* =========================
+   PAGE
+========================= */
+
+export default function Page() {
+  const router = useRouter();
+
+  const [step, setStep] = useState<"onboarding" | "app">("onboarding");
+  const [goal, setGoal] = useState<Goal>(null);
+  const [coach, setCoach] = useState<Coach | null>(null);
+
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
 
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
-  const [streak, setStreak] = useState(0);
+  const [shake, setShake] = useState(false);
 
-  const [plan, setPlan] = useState<"basic" | "premium">("basic");
-
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "I am My Future 🌌 — let’s build your life." },
-  ]);
-
-  const [input, setInput] = useState("");
-
-  const [levelUp, setLevelUp] = useState(false);
-  const [messagesCount, setMessagesCount] = useState(0);
-  const [xpToday, setXpToday] = useState(0);
-
-  const [ready, setReady] = useState(false);
+  const prevLevel = useRef(1);
 
   /* =========================
-     SAFE AUTH (NO BLOCKING NAV)
+     🔐 AUTH GUARD (NEW FIX)
   ========================= */
+
   useEffect(() => {
-    setReady(true);
+    const checkAuth = async () => {
+      if (!supabase) return;
 
-    const getUser = async () => {
-      try {
-        if (!supabase) return;
+      const { data } = await supabase.auth.getSession();
 
-        const { data } = await supabase.auth.getUser();
-
-        setUserId(data?.user?.id ?? null);
-      } catch (err) {
-        console.log("Auth error (safe ignore)");
+      if (!data.session) {
+        router.replace("/login");
       }
     };
 
-    getUser();
+    checkAuth();
   }, []);
 
-  const xpNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
+  /* LEVEL SYSTEM */
+  useEffect(() => {
+    const newLevel = Math.floor(xp / 100) + 1;
 
-  const calculateXP = (text: string) => {
-    const words = text.trim().split(/\s+/).filter(Boolean).length;
-    if (words < 10) return 2;
-    if (words < 25) return 4;
-    if (words < 60) return 8;
-    return 12;
+    if (newLevel > prevLevel.current) {
+      prevLevel.current = newLevel;
+      setLevel(newLevel);
+
+      setShake(true);
+      setTimeout(() => setShake(false), 400);
+    }
+  }, [xp]);
+
+  /* START */
+  const startGoal = (g: Goal) => {
+    setGoal(g);
+
+    const autoCoach: Coach =
+      g === "money"
+        ? "business"
+        : g === "fitness"
+        ? "fitness"
+        : g === "study"
+        ? "study"
+        : "mindset";
+
+    setCoach(autoCoach);
+    setStep("app");
+
+    setMessages([
+      { role: "assistant", content: `🔥 Coach Activated: ${autoCoach}` },
+      { role: "assistant", content: `🎯 Mission: ${generateMission(g!)}` },
+    ]);
   };
 
-  const getPersonality = () => {
-    if (level < 10) return "friendly coach";
-    if (level < 25) return "motivational trainer";
-    if (level < 50) return "elite AI coach";
-    return "god-tier strategist";
-  };
-
-  const sendMessage = async () => {
+  /* SEND */
+  const send = async () => {
     if (!input.trim()) return;
 
-    const userText = input;
+    const text = input;
+    setInput("");
 
     const newMessages: Message[] = [
       ...messages,
-      { role: "user", content: userText },
+      { role: "user", content: text },
     ];
 
     setMessages(newMessages);
-    setInput("");
-    setMessagesCount((p) => p + 1);
 
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages.slice(-10),
-          personality: getPersonality(),
-        }),
-      });
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: newMessages.slice(-10),
+        goal,
+        coach,
+      }),
+    });
 
-      const data = await res.json().catch(() => null);
+    const data = await res.json();
 
-      if (!res.ok || !data?.reply) return;
+    setMessages((p) => [
+      ...p,
+      { role: "assistant", content: data.reply },
+    ]);
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.reply },
-      ]);
-
-      const gainedXP = calculateXP(userText);
-
-      setXpToday((p) => p + gainedXP);
-
-      setXp((prev) => {
-        let newXP = prev + gainedXP;
-        let newLevel = level;
-
-        while (newXP >= xpNeeded(newLevel)) {
-          newXP -= xpNeeded(newLevel);
-          newLevel += 1;
-
-          setLevelUp(true);
-          setTimeout(() => setLevelUp(false), 1200);
-        }
-
-        setLevel(newLevel);
-        return newXP;
-      });
-    } catch (err) {
-      console.log("Chat error safe:", err);
-    }
+    setXp((p) => p + rewardXP(goal || "mindset"));
   };
 
-  /* =========================
-     SAFE LOADING (PREVENT CRASH BLANK)
-  ========================= */
-  if (!ready) {
+  /* ONBOARDING */
+  if (step === "onboarding") {
     return (
-      <div style={{ color: "white", padding: 20 }}>
-        Loading dashboard...
+      <div className="onboard">
+        <div className="card">
+          <h1>🌊 Choose your mission</h1>
+
+          <button onClick={() => startGoal("fitness")}>💪 Fitness</button>
+          <button onClick={() => startGoal("money")}>💰 Money</button>
+          <button onClick={() => startGoal("study")}>📚 Study</button>
+          <button onClick={() => startGoal("mindset")}>🧠 Mindset</button>
+
+          <button onClick={() => { setCoach("therapist"); setStep("app"); }}>
+            🧘 Therapist Mode
+          </button>
+
+          <button onClick={() => { setCoach("free"); setStep("app"); }}>
+            🆓 Free Mode
+          </button>
+        </div>
+
+        <style jsx>{`
+          .onboard {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            color: white;
+            background:
+              radial-gradient(circle at 20% 20%, rgba(0,255,255,0.15), transparent 35%),
+              radial-gradient(circle at 80% 30%, rgba(0,120,255,0.18), transparent 40%),
+              radial-gradient(circle at 50% 80%, rgba(0,180,255,0.12), transparent 45%),
+              linear-gradient(#00111f, #000814);
+          }
+        `}</style>
       </div>
     );
   }
 
+  /* MAIN DASHBOARD */
   return (
-    <div className="space">
-      <div className="stars" />
-      <div className="nebula" />
+    <div className={`space ${shake ? "shake" : ""}`}>
+      <div className="bg" />
+      <ShootingStars />
+      <div className="orb" />
 
-      {levelUp && <div className="levelUp">✨ LEVEL UP!</div>}
+      <div className="sidebar">
+        <p>XP: {xp}</p>
+        <p>Level: {level}</p>
+        <p>Coach: {coach}</p>
+      </div>
 
-      <div className="chatBox">
-
-        <div className="top">
-          <div>🌌 My Future AI</div>
-
-          <div className="topRight">
-            <div>⭐ Level {level}</div>
-
-            {plan === "premium" ? (
-              <div className="premiumBadge">👑 Premium</div>
-            ) : (
-              <button
-                className="upgradeBtn"
-                onClick={() => (window.location.href = "/pricing")}
-              >
-                🚀 Upgrade
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="messages">
+      <div className="main">
+        <div className="chat">
           {messages.map((m, i) => (
-            <div key={i} className={`msg ${m.role}`}>
-              {m.content}
+            <div key={i} className={`row ${m.role}`}>
+              <div className="bubble">{m.content}</div>
             </div>
           ))}
         </div>
 
-        <div className="inputRow">
+        <div className="bottom">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Message My Future..."
           />
-          <button onClick={sendMessage}>Send</button>
-        </div>
-
-        <div className="analytics">
-          📊 Messages: {messagesCount} | ⚡ XP Today: {xpToday}
+          <button onClick={send}>Send</button>
         </div>
       </div>
 
       <style jsx>{`
         .space {
+          display: flex;
           height: 100vh;
+          color: white;
           overflow: hidden;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          color: white;
-          background: radial-gradient(circle at top, #050816, #000);
-        }
-
-        .stars {
-          position: absolute;
-          width: 200%;
-          height: 200%;
-          background-image: radial-gradient(white 1px, transparent 1px);
-          background-size: 50px 50px;
-          opacity: 0.12;
-        }
-
-        .nebula {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 30% 30%, #6a5acd33, transparent 60%),
-                      radial-gradient(circle at 70% 70%, #00b4ff22, transparent 60%);
-        }
-
-        .chatBox {
-          width: 92%;
-          max-width: 1100px;
-          height: 92vh;
-          display: flex;
-          flex-direction: column;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1);
-          backdrop-filter: blur(20px);
-          border-radius: 20px;
-          z-index: 2;
-        }
-
-        .top {
-          display: flex;
-          justify-content: space-between;
-          padding: 12px 18px;
-          border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .topRight {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .upgradeBtn {
-          border: none;
-          color: white;
-          cursor: pointer;
-          font-weight: 700;
-          padding: 8px 14px;
-          border-radius: 999px;
-          background: linear-gradient(90deg, #7c3aed, #00b4ff);
-        }
-
-        .premiumBadge {
-          padding: 8px 14px;
-          border-radius: 999px;
-          background: linear-gradient(90deg, #f59e0b, #fbbf24);
-          color: black;
-          font-weight: 800;
-        }
-
-        .messages {
-          flex: 1;
-          padding: 18px;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .msg {
-          padding: 12px;
-          border-radius: 12px;
-          max-width: 70%;
-        }
-
-        .user {
-          margin-left: auto;
-          background: rgba(0,180,255,0.2);
-        }
-
-        .assistant {
-          background: rgba(255,255,255,0.08);
-        }
-
-        .inputRow {
-          display: flex;
-          padding: 12px;
-          gap: 10px;
-        }
-
-        input {
-          flex: 1;
-          padding: 12px;
-          border-radius: 10px;
-          border: none;
-          background: rgba(255,255,255,0.08);
-          color: white;
-        }
-
-        button {
-          padding: 12px 16px;
-          border: none;
-          border-radius: 10px;
-          background: #7c3aed;
-          color: white;
-        }
-
-        .analytics {
-          padding: 8px 12px;
-          font-size: 12px;
-          opacity: 0.7;
-        }
-
-        .levelUp {
-          position: absolute;
-          top: 20%;
-          left: 50%;
-          transform: translateX(-50%);
-          font-size: 40px;
-          text-shadow: 0 0 20px #00b4ff;
+          background: #000814;
         }
       `}</style>
     </div>

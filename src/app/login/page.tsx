@@ -19,7 +19,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔒 if already logged in → skip login page
   useEffect(() => {
     const checkSession = async () => {
       if (!supabase) return;
@@ -27,7 +26,7 @@ export default function LoginPage() {
       const { data } = await supabase.auth.getSession();
 
       if (data.session) {
-        router.push("/dashboard");
+        router.replace("/dashboard");
       }
     };
 
@@ -40,7 +39,7 @@ export default function LoginPage() {
     if (!supabase) return;
 
     if (!email || !password) {
-      alert("Enter email and password first");
+      alert("Please enter email and password");
       return;
     }
 
@@ -58,10 +57,11 @@ export default function LoginPage() {
       }
 
       if (data.session) {
-        router.push("/dashboard");
+        router.replace("/dashboard");
       }
     } catch (err) {
       console.log(err);
+      alert("Login failed");
     } finally {
       setLoading(false);
     }
