@@ -88,23 +88,57 @@ export default function Dashboard() {
   const prevLevel = useRef(1);
   const [levelUp, setLevelUp] = useState(false);
 
-  /* AUTH CHECK */
-  useEffect(() => {
-    const check = async () => {
-      const { data } = await supabase.auth.getSession();
+  const [userId, setUserId] = useState<string | null>(null);
 
-      if (!data.session) {
+  /* =========================
+     AUTH + LOAD XP FROM DB
+  ========================= */
+  useEffect(() => {
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getUser();
+
+      const user = data?.user;
+      if (!user) {
         router.replace("/login");
-      } else {
-        setLoading(false);
+        return;
       }
+
+      setUserId(user.id);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("xp, level")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setXp(profile.xp ?? 0);
+        setLevel(profile.level ?? 1);
+      }
+
+      setLoading(false);
     };
 
-    check();
+    loadUser();
   }, []);
 
   /* =========================
-     FIXED XP SYSTEM (REALISTIC)
+     SAVE XP TO DATABASE
+  ========================= */
+  const saveXP = async (newXP: number, newLevel: number) => {
+    if (!userId) return;
+
+    await supabase
+      .from("profiles")
+      .update({
+        xp: newXP,
+        level: newLevel,
+      })
+      .eq("id", userId);
+  };
+
+  /* =========================
+     XP SYSTEM (FIXED + FUN)
   ========================= */
 
   const getXPForMessage = (text: string) => {
@@ -134,7 +168,15 @@ export default function Dashboard() {
   }, [xp]);
 
   const addXP = (amount: number) => {
-    setXp((prev) => prev + amount);
+    setXp((prev) => {
+      const newXP = prev + amount;
+      const newLevel = calculateLevel(newXP);
+
+      // 💾 SAVE TO DATABASE
+      saveXP(newXP, newLevel);
+
+      return newXP;
+    });
   };
 
   /* =========================
@@ -169,7 +211,6 @@ export default function Dashboard() {
       { role: "assistant", content: data.reply },
     ]);
 
-    // ✅ FIXED XP LOGIC (REALISTIC PROGRESSION)
     const gained = getXPForMessage(text);
     addXP(gained);
   };
