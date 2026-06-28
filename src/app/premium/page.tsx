@@ -4,10 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-/* =========================
-   TYPES
-========================= */
-
 type Message = {
   role: "user" | "assistant";
   content: string;
@@ -88,10 +84,11 @@ export default function Dashboard() {
 
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
-
   const prevLevel = useRef(1);
 
-  /* AUTH CHECK */
+  const [levelUp, setLevelUp] = useState(false);
+
+  /* AUTH CHECK (safer) */
   useEffect(() => {
     const check = async () => {
       const { data } = await supabase.auth.getSession();
@@ -113,6 +110,9 @@ export default function Dashboard() {
     if (newLevel > prevLevel.current) {
       prevLevel.current = newLevel;
       setLevel(newLevel);
+
+      setLevelUp(true);
+      setTimeout(() => setLevelUp(false), 1200);
     }
   }, [xp]);
 
@@ -123,7 +123,7 @@ export default function Dashboard() {
     const text = input;
     setInput("");
 
-    const newMessages = [
+    const newMessages: Message[] = [
       ...messages,
       { role: "user", content: text },
     ];
@@ -162,22 +162,14 @@ export default function Dashboard() {
       <div className="bg" />
       <ShootingStars />
 
+      {levelUp && <div className="levelUp">✨ LEVEL UP!</div>}
+
       <div className="sidebar">
         <h2>🔥 Dashboard</h2>
         <p>XP: {xp}</p>
         <p>Level: {level}</p>
 
-        <button
-          onClick={() => router.push("/pricing")}
-          style={{
-            marginTop: 10,
-            padding: 10,
-            background: "#00b4ff",
-            border: "none",
-            color: "white",
-            borderRadius: 8,
-          }}
-        >
+        <button onClick={() => router.push("/pricing")}>
           Upgrade
         </button>
 
@@ -201,10 +193,7 @@ export default function Dashboard() {
         </div>
 
         <div className="bottom">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
+          <input value={input} onChange={(e) => setInput(e.target.value)} />
           <button onClick={send}>Send</button>
         </div>
       </div>
@@ -281,6 +270,16 @@ export default function Dashboard() {
           color: white;
           padding: 10px 14px;
           border-radius: 10px;
+        }
+
+        .levelUp {
+          position: absolute;
+          top: 20%;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 40px;
+          text-shadow: 0 0 20px #00b4ff;
+          z-index: 10;
         }
       `}</style>
     </div>
