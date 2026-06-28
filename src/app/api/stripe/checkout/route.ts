@@ -2,17 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-06-24.dahlia",
+  apiVersion: "2024-06-20",
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // Safely read body (prevents crashes)
+    const body = await req.json().catch(() => ({}));
+
     const userId = body.userId ?? "anonymous";
 
     const priceId = process.env.STRIPE_PRICE_ID;
     const baseUrl = process.env.NEXT_PUBLIC_URL;
 
+    // ENV CHECKS (VERY IMPORTANT)
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json(
         { error: "Missing STRIPE_SECRET_KEY" },
@@ -34,8 +37,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // CREATE STRIPE SESSION
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       mode: "subscription",
       line_items: [
         {
@@ -50,9 +53,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // SAFETY CHECK
+    if (!session.url) {
+      return NextResponse.json(
+        { error: "Stripe session URL missing" },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error(err);
+    console.error("Stripe checkout error:", err);
+
     return NextResponse.json(
       {
         error: err.message || "Internal Server Error",
