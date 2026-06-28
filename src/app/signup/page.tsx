@@ -13,7 +13,6 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ✅ SAFE: client created only in browser
   const getSupabase = () =>
     createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -26,13 +25,6 @@ export default function SignupPage() {
     setError("");
 
     const supabase = getSupabase();
-
-    // safety check (prevents build crash)
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      setError("Supabase environment variables missing");
-      setLoading(false);
-      return;
-    }
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -52,15 +44,12 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="space-bg">
-      <div className="overlay" />
+    <div className="bg">
+      <div className="glow" />
 
-      <div className="signup-card">
+      <div className="card">
         <h1>JOIN MY FUTURE</h1>
-
-        <p className="subtitle">
-          Create your account and begin your mission.
-        </p>
+        <p>Create your account and unlock your AI system</p>
 
         <form onSubmit={handleSignup}>
           <input
@@ -84,52 +73,121 @@ export default function SignupPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          {error && <p style={{ color: "red", fontSize: "12px" }}>{error}</p>}
+          {error && <div className="error">{error}</div>}
 
-          <button type="submit" disabled={loading}>
-            {loading ? "CREATING..." : "CREATE ACCOUNT"}
+          <button disabled={loading}>
+            {loading ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
           </button>
 
           <button
             type="button"
-            className="back-btn"
+            className="ghost"
             onClick={() => router.push("/login")}
           >
-            BACK TO LOGIN
+            I already have an account
           </button>
         </form>
       </div>
 
       <style jsx>{`
-        .space-bg {
+        .bg {
           height: 100vh;
           width: 100%;
           display: flex;
           justify-content: center;
           align-items: center;
+          background: radial-gradient(circle at top, #0b1220, #000);
           position: relative;
           overflow: hidden;
-
-          background: url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2000")
-            center/cover no-repeat;
         }
 
-        .overlay {
+        .glow {
           position: absolute;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.55);
+          width: 600px;
+          height: 600px;
+          background: radial-gradient(circle, rgba(0,180,255,0.25), transparent 60%);
+          top: -150px;
+          left: -150px;
+          filter: blur(40px);
         }
 
-        .signup-card {
-          position: relative;
-          z-index: 10;
-          width: 450px;
-          padding: 40px;
-          border-radius: 24px;
-          background: rgba(255, 255, 255, 0.08);
+        .card {
+          width: 420px;
+          padding: 35px;
+          border-radius: 18px;
+
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
           backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+
+          box-shadow: 0 0 60px rgba(0, 180, 255, 0.15);
+          z-index: 2;
           text-align: center;
+          color: white;
+        }
+
+        h1 {
+          font-size: 28px;
+          margin-bottom: 6px;
+          letter-spacing: 2px;
+        }
+
+        p {
+          font-size: 13px;
+          color: rgba(255,255,255,0.6);
+          margin-bottom: 25px;
+        }
+
+        input {
+          width: 100%;
+          padding: 14px;
+          margin-bottom: 12px;
+
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.12);
+
+          background: rgba(255,255,255,0.05);
+          color: white;
+
+          outline: none;
+        }
+
+        input:focus {
+          border-color: #00b4ff;
+          box-shadow: 0 0 15px rgba(0,180,255,0.3);
+        }
+
+        button {
+          width: 100%;
+          padding: 14px;
+
+          margin-top: 10px;
+
+          border: none;
+          border-radius: 10px;
+
+          background: linear-gradient(90deg, #00b4ff, #7c3aed);
+          color: white;
+
+          font-weight: bold;
+          cursor: pointer;
+
+          transition: 0.2s;
+        }
+
+        button:hover {
+          transform: translateY(-2px);
+        }
+
+        .ghost {
+          background: transparent;
+          border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .error {
+          color: #ff4d4d;
+          font-size: 12px;
+          margin-top: 8px;
         }
       `}</style>
     </div>
