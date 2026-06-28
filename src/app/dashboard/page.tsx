@@ -9,21 +9,21 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkUser = async () => {
+    const check = async () => {
       const { data } = await supabase.auth.getSession();
 
       if (!data.session) {
-        router.push("/login");
+        router.replace("/login");
       } else {
         setLoading(false);
       }
     };
 
-    checkUser();
+    check();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        if (!session) router.push("/login");
+        if (!session) router.replace("/login");
       }
     );
 
@@ -34,16 +34,16 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div style={{ color: "white", padding: 40 }}>
+      <div style={{ color: "white", padding: 30 }}>
         Loading dashboard...
       </div>
     );
   }
 
   return (
-    <div style={{ color: "white", padding: 40 }}>
+    <div style={{ color: "white", padding: 30 }}>
       <h1>🔥 Premium Dashboard</h1>
-      <p>You are successfully logged in.</p>
+      <p>You are logged in successfully.</p>
 
       <button
         onClick={async () => {
