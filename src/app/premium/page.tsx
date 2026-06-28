@@ -98,7 +98,7 @@ function ShootingStars() {
       style={{
         position: "absolute",
         inset: 0,
-        zIndex: 1,
+        zIndex: 0,
         pointerEvents: "none",
       }}
     />
@@ -123,7 +123,6 @@ export default function Page() {
   const [level, setLevel] = useState(1);
   const [shake, setShake] = useState(false);
 
-  /* 🔐 REAL SAAS PLAN (FROM SUPABASE) */
   const [plan, setPlan] = useState<"basic" | "premium">("basic");
 
   const prevLevel = useRef(1);
@@ -196,19 +195,15 @@ export default function Page() {
 
   /* =========================
      SEND MESSAGE
-========================= */
+  ========================= */
 
   const send = async () => {
     if (!input.trim()) return;
 
-    /* 🔐 PREMIUM GUARD (REAL SAAS PROTECTION) */
     if (plan !== "premium") {
       setMessages((p) => [
         ...p,
-        {
-          role: "assistant",
-          content: "💎 Premium feature locked. Upgrade to unlock.",
-        },
+        { role: "assistant", content: "💎 Premium locked. Upgrade to unlock." },
       ]);
       return;
     }
@@ -245,7 +240,7 @@ export default function Page() {
 
   /* =========================
      ONBOARDING
-========================= */
+  ========================= */
 
   if (step === "onboarding") {
     return (
@@ -258,21 +253,11 @@ export default function Page() {
           <button onClick={() => startGoal("study")}>📚 Study</button>
           <button onClick={() => startGoal("mindset")}>🧠 Mindset</button>
 
-          <button
-            onClick={() => {
-              setCoach("therapist");
-              setStep("app");
-            }}
-          >
+          <button onClick={() => { setCoach("therapist"); setStep("app"); }}>
             🧘 Therapist Mode
           </button>
 
-          <button
-            onClick={() => {
-              setCoach("free");
-              setStep("app");
-            }}
-          >
+          <button onClick={() => { setCoach("free"); setStep("app"); }}>
             🆓 Free Mode
           </button>
         </div>
@@ -313,8 +298,8 @@ export default function Page() {
   }
 
   /* =========================
-     MAIN UI
-========================= */
+     MAIN UI (FIXED INPUT Z-INDEX)
+  ========================= */
 
   return (
     <div className={`space ${shake ? "shake" : ""}`}>
@@ -338,13 +323,17 @@ export default function Page() {
         </div>
 
         <div className="bottom">
-          <input value={input} onChange={(e) => setInput(e.target.value)} />
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
           <button onClick={send}>Send</button>
         </div>
       </div>
 
       <style jsx>{`
         .space {
+          position: relative;
           display: flex;
           height: 100vh;
           color: white;
@@ -354,19 +343,22 @@ export default function Page() {
         .bg {
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.3), transparent 40%),
-                      radial-gradient(circle at 80% 30%, rgba(0,180,255,0.2), transparent 40%);
+          z-index: 0;
         }
 
         .sidebar {
           width: 220px;
           padding: 16px;
+          z-index: 2;
+          position: relative;
         }
 
         .main {
           flex: 1;
           display: flex;
           flex-direction: column;
+          z-index: 2;
+          position: relative;
         }
 
         .chat {
@@ -395,6 +387,8 @@ export default function Page() {
           display: flex;
           padding: 12px;
           gap: 10px;
+          position: relative;
+          z-index: 3;
         }
 
         input {
@@ -403,6 +397,8 @@ export default function Page() {
           background: rgba(255,255,255,0.08);
           border: 1px solid #333;
           color: white;
+          position: relative;
+          z-index: 3;
         }
 
         button {
