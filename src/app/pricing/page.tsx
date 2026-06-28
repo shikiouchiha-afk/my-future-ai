@@ -10,6 +10,8 @@ export default function PricingPage() {
     try {
       setLoading(true);
 
+      console.log("Stripe click triggered");
+
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: {
@@ -18,23 +20,24 @@ export default function PricingPage() {
         body: JSON.stringify({ yearly }),
       });
 
-      let data = null;
+      const data = await res.json().catch(() => null);
 
-      try {
-        data = await res.json();
-      } catch {
-        console.error("Backend did not return JSON");
+      console.log("Stripe response:", data);
+
+      if (!res.ok) {
+        console.error("Stripe API error:", data);
         return;
       }
 
-      if (!res.ok || !data?.url) {
-        console.error("Stripe error:", data);
+      if (!data?.url) {
+        console.error("No Stripe URL returned");
         return;
       }
 
+      // IMPORTANT: redirect to Stripe
       window.location.href = data.url;
     } catch (err) {
-      console.error("Request failed:", err);
+      console.error("Stripe request failed:", err);
     } finally {
       setLoading(false);
     }
@@ -46,13 +49,14 @@ export default function PricingPage() {
 
       <div className="container">
         <h1 className="title">Unlock Your Future AI System 🌌</h1>
+
         <p className="subtitle">
           Upgrade to a multi-coach intelligence system built for real growth
         </p>
 
-        {/* VALUE LINE (what you asked for) */}
+        {/* VALUE LINE */}
         <div className="valueLine">
-          Elite System — Premium AI Universe — $26.99/mo — AI that upgrades your mindset, body, money, business, emotions & learning in one system.
+          Elite System — Premium AI Universe — $26.99/mo — AI that upgrades mindset, body, money, business, emotions & learning in one system.
         </div>
 
         {/* TOGGLE */}
@@ -63,6 +67,7 @@ export default function PricingPage() {
           >
             Monthly
           </button>
+
           <button
             className={yearly ? "active" : ""}
             onClick={() => setYearly(true)}
@@ -98,7 +103,7 @@ export default function PricingPage() {
             </p>
 
             <div className="coachBox">
-              🤖 6 AI Coaches Included — Mindset Coach (discipline, focus, identity) • Fitness Coach (body transformation plans) • Money Coach (income + business growth) • Business Coach (startup & scaling strategies) • Therapist Coach (emotional clarity & support) • Study Coach (learning, exams, productivity)
+              🤖 6 AI Coaches — Mindset • Fitness • Money • Business • Therapy • Study — all in one system
             </div>
 
             <ul>
@@ -138,12 +143,6 @@ export default function PricingPage() {
             radial-gradient(circle at 80% 30%, #00b4ff55, transparent 40%),
             radial-gradient(circle at 50% 80%, #22c55e33, transparent 40%);
           filter: blur(60px);
-          animation: float 8s ease-in-out infinite;
-        }
-
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
         }
 
         .container {
@@ -211,7 +210,6 @@ export default function PricingPage() {
         .premium {
           border: 1px solid #7c3aed;
           box-shadow: 0 0 50px rgba(124,58,237,0.4);
-          transform: scale(1.05);
         }
 
         .badge {
@@ -246,7 +244,6 @@ export default function PricingPage() {
           border-radius: 12px;
           margin: 15px 0;
           text-align: left;
-          border: 1px solid rgba(255,255,255,0.1);
         }
 
         .premiumBtn {
@@ -272,10 +269,6 @@ export default function PricingPage() {
         @media (max-width: 768px) {
           .grid {
             grid-template-columns: 1fr;
-          }
-
-          .premium {
-            transform: none;
           }
         }
       `}</style>
