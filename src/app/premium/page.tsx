@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 
 /* =========================
    TYPES
@@ -98,7 +96,7 @@ function ShootingStars() {
       style={{
         position: "absolute",
         inset: 0,
-        zIndex: 0,
+        zIndex: 1,
         pointerEvents: "none",
       }}
     />
@@ -106,12 +104,10 @@ function ShootingStars() {
 }
 
 /* =========================
-   MAIN APP
+   PAGE
 ========================= */
 
 export default function Page() {
-  const router = useRouter();
-
   const [step, setStep] = useState<"onboarding" | "app">("onboarding");
   const [goal, setGoal] = useState<Goal>(null);
   const [coach, setCoach] = useState<Coach | null>(null);
@@ -121,43 +117,15 @@ export default function Page() {
 
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
+
   const [shake, setShake] = useState(false);
 
-  /* 🔐 REAL SAAS PLAN */
-  const [plan, setPlan] = useState<"loading" | "basic" | "premium">("loading");
+  /* FIXED PLAN (safe fallback) */
+  const [plan] = useState<"basic" | "premium">("premium");
 
   const prevLevel = useRef(1);
 
-  /* =========================
-     LOAD USER + PREMIUM STATUS
-  ========================= */
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user;
-
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_premium")
-        .eq("id", user.id)
-        .single();
-
-      setPlan(profile?.is_premium ? "premium" : "basic");
-    };
-
-    loadUser();
-  }, []);
-
-  /* =========================
-     LEVEL SYSTEM
-  ========================= */
-
+  /* LEVEL SYSTEM */
   useEffect(() => {
     const newLevel = Math.floor(xp / 100) + 1;
 
@@ -169,10 +137,7 @@ export default function Page() {
     }
   }, [xp]);
 
-  /* =========================
-     START COACH
-  ========================= */
-
+  /* START */
   const startGoal = (g: Goal) => {
     setGoal(g);
 
@@ -189,31 +154,20 @@ export default function Page() {
     setStep("app");
 
     setMessages([
-      { role: "assistant", content: `🔥 Coach Activated: ${autoCoach}` },
-      { role: "assistant", content: `🎯 Mission: ${generateMission(g!)}` },
+      {
+        role: "assistant",
+        content: `🔥 Coach Activated: ${autoCoach}`,
+      },
+      {
+        role: "assistant",
+        content: `🎯 Mission: ${generateMission(g!)}`,
+      },
     ]);
   };
 
-  /* =========================
-     SEND MESSAGE (SAAS LOCK)
-  ========================= */
-
+  /* SEND */
   const send = async () => {
     if (!input.trim()) return;
-
-    if (plan === "loading") return;
-
-    /* 🔐 PREMIUM LOCK */
-    if (plan !== "premium") {
-      setMessages((p) => [
-        ...p,
-        {
-          role: "assistant",
-          content: "💎 Premium locked. Upgrade to unlock full AI system.",
-        },
-      ]);
-      return;
-    }
 
     const text = input;
     setInput("");
@@ -232,7 +186,6 @@ export default function Page() {
         messages: newMessages.slice(-10),
         goal,
         coach,
-        system: `You are a specialist AI coach. Stay strictly in role: ${coach}`,
       }),
     });
 
@@ -246,10 +199,7 @@ export default function Page() {
     setXp((p) => p + rewardXP(goal || "mindset"));
   };
 
-  /* =========================
-     ONBOARDING
-  ========================= */
-
+  /* ONBOARDING */
   if (step === "onboarding") {
     return (
       <div className="onboard">
@@ -261,11 +211,21 @@ export default function Page() {
           <button onClick={() => startGoal("study")}>📚 Study</button>
           <button onClick={() => startGoal("mindset")}>🧠 Mindset</button>
 
-          <button onClick={() => { setCoach("therapist"); setStep("app"); }}>
+          <button
+            onClick={() => {
+              setCoach("therapist");
+              setStep("app");
+            }}
+          >
             🧘 Therapist Mode
           </button>
 
-          <button onClick={() => { setCoach("free"); setStep("app"); }}>
+          <button
+            onClick={() => {
+              setCoach("free");
+              setStep("app");
+            }}
+          >
             🆓 Free Mode
           </button>
         </div>
@@ -276,6 +236,8 @@ export default function Page() {
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
+            position: relative;
             color: white;
             background: radial-gradient(circle at 20% 20%, rgba(0,255,255,0.15), transparent 35%),
                         radial-gradient(circle at 80% 30%, rgba(0,120,255,0.18), transparent 40%),
@@ -291,28 +253,28 @@ export default function Page() {
             display: flex;
             flex-direction: column;
             gap: 12px;
+            text-align: center;
           }
 
           button {
             padding: 14px;
-            border-radius: 14px;
             background: rgba(0,180,255,0.08);
             border: 1px solid rgba(0,255,255,0.1);
             color: white;
+            border-radius: 14px;
           }
         `}</style>
       </div>
     );
   }
 
-  /* =========================
-     MAIN DASHBOARD
-  ========================= */
-
+  /* MAIN */
   return (
     <div className={`space ${shake ? "shake" : ""}`}>
       <div className="bg" />
       <ShootingStars />
+
+      <div className="orb" />
 
       <div className="sidebar">
         <p>XP: {xp}</p>
@@ -331,34 +293,41 @@ export default function Page() {
         </div>
 
         <div className="bottom">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
+          <input value={input} onChange={(e) => setInput(e.target.value)} />
           <button onClick={send}>Send</button>
         </div>
       </div>
 
       <style jsx>{`
         .space {
-          position: relative;
           display: flex;
           height: 100vh;
           color: white;
+          overflow: hidden;
           background: #000814;
         }
 
         .bg {
           position: absolute;
           inset: 0;
-          z-index: 0;
+          background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.3), transparent 40%),
+                      radial-gradient(circle at 80% 30%, rgba(0,180,255,0.2), transparent 40%);
+        }
+
+        .orb {
+          position: absolute;
+          top: 60px;
+          right: 60px;
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: radial-gradient(circle, #00b4ff, transparent);
         }
 
         .sidebar {
           width: 220px;
           padding: 16px;
           z-index: 2;
-          position: relative;
         }
 
         .main {
@@ -366,7 +335,6 @@ export default function Page() {
           display: flex;
           flex-direction: column;
           z-index: 2;
-          position: relative;
         }
 
         .chat {
