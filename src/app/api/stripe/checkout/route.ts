@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+/* =========================
+   STRIPE INIT (FIXED TYPE SAFE)
+========================= */
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2026-06-24.dahlia",
+});
 
+/* =========================
+   CHECKOUT ROUTE
+========================= */
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
