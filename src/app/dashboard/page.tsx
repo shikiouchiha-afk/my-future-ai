@@ -7,261 +7,312 @@ import { supabase } from "@/lib/supabaseClient";
 /* =========================
    TYPES
 ========================= */
-
 type Message = {
   role: "user" | "assistant";
   content: string;
 };
 
 /* =========================
-   SHOOTING STARS
-========================= */
-
-function ShootingStars() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current!;
-    const ctx = canvas.getContext("2d")!;
-
-    let w = (canvas.width = window.innerWidth);
-    let h = (canvas.height = window.innerHeight);
-
-    const stars = Array.from({ length: 15 }).map(() => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      len: Math.random() * 60 + 20,
-      speed: Math.random() * 2 + 1,
-    }));
-
-    let frame: number;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, w, h);
-
-      for (const s of stars) {
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        ctx.lineTo(s.x + s.len, s.y + s.len);
-        ctx.strokeStyle = "rgba(255,255,255,0.6)";
-        ctx.stroke();
-
-        s.x += s.speed;
-        s.y += s.speed;
-
-        if (s.x > w || s.y > h) {
-          s.x = Math.random() * w;
-          s.y = 0;
-        }
-      }
-
-      frame = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: "absolute",
-        inset: 0,
-        zIndex: 1,
-        pointerEvents: "none",
-      }}
-    />
-  );
-}
-
-/* =========================
-   MAIN
+   MAIN DASHBOARD
 ========================= */
 
 export default function Dashboard() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
+  const [streak] = useState(0);
+
+  const [plan, setPlan] = useState<"basic" | "premium">("basic");
+
+  const [messages, setMessages] = useState<Message[]>([
+    { role: "assistant", content: "I am My Future 🌌 — let’s build your life." },
+  ]);
+
+  const [input, setInput] = useState("");
+
+  const [levelUp, setLevelUp] = useState(false);
+  const [messagesCount, setMessagesCount] = useState(0);
+  const [xpToday, setXpToday] = useState(0);
 
   const prevLevel = useRef(1);
 
-  /* AUTH CHECK */
+  /* =========================
+     AUTH CHECK (FIXED)
+  ========================= */
   useEffect(() => {
-    const check = async () => {
+    const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
 
       if (!data.session) {
         router.replace("/login");
       } else {
-        setLoading(false);
+        setUserId(data.session.user.id);
       }
     };
 
-    check();
+    checkUser();
   }, []);
 
-  /* LEVEL SYSTEM */
+  /* =========================
+     LOAD PLAN (FIXED SAFE)
+  ========================= */
+  useEffect(() => {
+    const stored = localStorage.getItem("plan") as
+      | "basic"
+      | "premium"
+      | null;
+
+    if (stored) setPlan(stored);
+  }, []);
+
+  /* =========================
+     XP SYSTEM
+  ========================= */
+  const xpNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
+
+  const calculateXP = (text: string) => {
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    if (words < 10) return 2;
+    if (words < 25) return 4;
+    if (words < 60) return 8;
+    return 12;
+  };
+
   useEffect(() => {
     const newLevel = Math.floor(xp / 100) + 1;
 
-    if (newLevel > prevLevel.current) {
-      prevLevel.current = newLevel;
+    if (newLevel !== level) {
       setLevel(newLevel);
+
+      setLevelUp(true);
+      setTimeout(() => setLevelUp(false), 1200);
+
+      prevLevel.current = newLevel;
     }
   }, [xp]);
 
-  /* CHAT */
-  const send = async () => {
+  /* =========================
+     PERSONALITY
+  ========================= */
+  const getPersonality = () => {
+    if (level < 10) return "friendly coach";
+    if (level < 25) return "motivational trainer";
+    if (level < 50) return "elite AI coach";
+    return "god-tier strategist";
+  };
+
+  /* =========================
+     SEND MESSAGE
+  ========================= */
+  const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const text = input;
-    setInput("");
+    if (plan === "basic" && level >= 50) {
+      alert("🔒 Upgrade to Premium to continue leveling.");
+      return;
+    }
 
-    const newMessages = [
+    const userText = input;
+
+    const newMessages: Message[] = [
       ...messages,
-      { role: "user", content: text },
+      { role: "user" as const, content: userText },
     ];
 
     setMessages(newMessages);
+    setInput("");
+    setMessagesCount((p) => p + 1);
 
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: newMessages.slice(-10),
+        personality: getPersonality(),
       }),
     });
 
     const data = await res.json();
 
-    setMessages((p) => [
-      ...p,
+    setMessages((prev) => [
+      ...prev,
       { role: "assistant", content: data.reply },
     ]);
 
-    setXp((p) => p + 10);
+    const gainedXP = calculateXP(userText);
+
+    setXpToday((p) => p + gainedXP);
+
+    setXp((prev) => {
+      let newXP = prev + gainedXP;
+      let newLevel = level;
+
+      while (newXP >= xpNeeded(newLevel)) {
+        newXP -= xpNeeded(newLevel);
+        newLevel += 1;
+
+        setLevelUp(true);
+        setTimeout(() => setLevelUp(false), 1200);
+      }
+
+      return newXP;
+    });
   };
 
-  /* LOADING */
-  if (loading) {
-    return (
-      <div style={{ color: "white", padding: 30 }}>
-        Loading dashboard...
-      </div>
-    );
-  }
-
+  /* =========================
+     UI
+  ========================= */
   return (
     <div className="space">
-      <div className="bg" />
-      <ShootingStars />
+      <div className="stars" />
+      <div className="nebula" />
 
-      <div className="sidebar">
-        <h2>🔥 Dashboard</h2>
-        <p>XP: {xp}</p>
-        <p>Level: {level}</p>
+      {levelUp && <div className="levelUp">✨ LEVEL UP!</div>}
 
-        <button
-          onClick={() => router.push("/pricing")}
-          style={{
-            marginTop: 10,
-            padding: 10,
-            background: "#00b4ff",
-            border: "none",
-            color: "white",
-            borderRadius: 8,
-          }}
-        >
-          Upgrade
-        </button>
+      <div className="chatBox">
+        {/* TOP BAR */}
+        <div className="top">
+          <div>🌌 My Future AI</div>
 
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            router.push("/login");
-          }}
-        >
-          Logout
-        </button>
-      </div>
+          <div className="topRight">
+            <div>⭐ Level {level}</div>
 
-      <div className="main">
-        <div className="chat">
+            {plan === "premium" ? (
+              <div className="premiumBadge">👑 Premium</div>
+            ) : (
+              <button
+                className="upgradeBtn"
+                onClick={() => router.push("/pricing")}
+              >
+                🚀 Upgrade
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* MESSAGES */}
+        <div className="messages">
           {messages.map((m, i) => (
-            <div key={i} className={`row ${m.role}`}>
-              <div className="bubble">{m.content}</div>
+            <div key={i} className={`msg ${m.role}`}>
+              {m.content}
             </div>
           ))}
         </div>
 
-        <div className="bottom">
+        {/* INPUT */}
+        <div className="inputRow">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            placeholder="Message My Future..."
           />
-          <button onClick={send}>Send</button>
+          <button onClick={sendMessage}>Send</button>
+        </div>
+
+        {/* STATS */}
+        <div className="analytics">
+          📊 Messages: {messagesCount} | ⚡ XP Today: {xpToday}
         </div>
       </div>
 
       <style jsx>{`
         .space {
-          display: flex;
           height: 100vh;
-          color: white;
           overflow: hidden;
-          background: #000814;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          color: white;
+          background: radial-gradient(circle at top, #050816, #000);
         }
 
-        .bg {
+        .stars {
+          position: absolute;
+          width: 200%;
+          height: 200%;
+          background-image: radial-gradient(white 1px, transparent 1px);
+          background-size: 50px 50px;
+          opacity: 0.12;
+        }
+
+        .nebula {
           position: absolute;
           inset: 0;
-          background:
-            radial-gradient(circle at 20% 20%, rgba(99,102,241,0.3), transparent 40%),
-            radial-gradient(circle at 80% 30%, rgba(0,180,255,0.2), transparent 40%);
+          background: radial-gradient(circle at 30% 30%, #6a5acd33, transparent 60%),
+                      radial-gradient(circle at 70% 70%, #00b4ff22, transparent 60%);
         }
 
-        .sidebar {
-          width: 220px;
-          padding: 16px;
-          z-index: 2;
-        }
-
-        .main {
-          flex: 1;
+        .chatBox {
+          width: 92%;
+          max-width: 1100px;
+          height: 92vh;
           display: flex;
           flex-direction: column;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
+          backdrop-filter: blur(20px);
+          border-radius: 20px;
           z-index: 2;
         }
 
-        .chat {
-          flex: 1;
-          padding: 20px;
-          overflow-y: auto;
-        }
-
-        .row {
+        .top {
           display: flex;
-          margin-bottom: 10px;
+          justify-content: space-between;
+          padding: 12px 18px;
+          border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        .row.user {
-          justify-content: flex-end;
+        .topRight {
+          display: flex;
+          gap: 12px;
+          align-items: center;
         }
 
-        .bubble {
+        .upgradeBtn {
+          padding: 8px 14px;
+          border: none;
+          border-radius: 999px;
+          font-weight: 700;
+          background: linear-gradient(90deg, #7c3aed, #00b4ff);
+          color: white;
+        }
+
+        .premiumBadge {
+          padding: 8px 14px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #f59e0b, #fbbf24);
+          color: black;
+          font-weight: 800;
+        }
+
+        .messages {
+          flex: 1;
+          padding: 18px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .msg {
           padding: 12px;
           border-radius: 12px;
-          background: rgba(255,255,255,0.08);
-          max-width: 60%;
+          max-width: 70%;
         }
 
-        .bottom {
+        .user {
+          margin-left: auto;
+          background: rgba(0,180,255,0.2);
+        }
+
+        .assistant {
+          background: rgba(255,255,255,0.08);
+        }
+
+        .inputRow {
           display: flex;
           padding: 12px;
           gap: 10px;
@@ -269,18 +320,34 @@ export default function Dashboard() {
 
         input {
           flex: 1;
-          padding: 10px;
+          padding: 12px;
+          border-radius: 10px;
+          border: none;
           background: rgba(255,255,255,0.08);
-          border: 1px solid #333;
           color: white;
         }
 
         button {
-          background: #00b4ff;
+          padding: 12px 16px;
           border: none;
-          color: white;
-          padding: 10px 14px;
           border-radius: 10px;
+          background: #7c3aed;
+          color: white;
+        }
+
+        .analytics {
+          padding: 8px 12px;
+          font-size: 12px;
+          opacity: 0.7;
+        }
+
+        .levelUp {
+          position: absolute;
+          top: 20%;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 40px;
+          text-shadow: 0 0 20px #00b4ff;
         }
       `}</style>
     </div>
