@@ -4,14 +4,49 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
+/* =========================
+   TYPES
+========================= */
+
 type Message = {
   role: "user" | "assistant";
   content: string;
 };
 
+type Goal = "fitness" | "money" | "study" | "mindset" | null;
+
+type Coach =
+  | "business"
+  | "fitness"
+  | "study"
+  | "life"
+  | "mindset"
+  | "therapist"
+  | "free";
+
+/* =========================
+   CORE LOGIC
+========================= */
+
+function generateMission(goal: string) {
+  const missions = {
+    fitness: "Do 10 pushups right now.",
+    money: "Write 1 way to make $ today.",
+    study: "Study focused for 15 minutes.",
+    mindset: "Write 3 goals for your life.",
+  };
+
+  return missions[goal as keyof typeof missions];
+}
+
+function rewardXP(goal: string) {
+  return 10 + (goal === "money" ? 8 : goal === "study" ? 6 : 5);
+}
+
 /* =========================
    SHOOTING STARS
 ========================= */
+
 function ShootingStars() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -71,26 +106,32 @@ function ShootingStars() {
 }
 
 /* =========================
-   MAIN DASHBOARD (SAAS SAFE)
+   MAIN SAAS DASHBOARD
 ========================= */
 
-export default function Dashboard() {
+export default function Page() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
+  const [step, setStep] = useState<"onboarding" | "app">("onboarding");
+  const [goal, setGoal] = useState<Goal>(null);
+  const [coach, setCoach] = useState<Coach | null>(null);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
 
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
+  const [shake, setShake] = useState(false);
 
-  const [userId, setUserId] = useState<string | null>(null);
+  /* 🔐 REAL SAAS PLAN (FROM SUPABASE) */
+  const [plan, setPlan] = useState<"basic" | "premium">("basic");
 
   const prevLevel = useRef(1);
 
   /* =========================
-     AUTH + AUTO PROFILE FIX
+     LOAD USER + PREMIUM CHECK
   ========================= */
+
   useEffect(() => {
     const loadUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -101,38 +142,13 @@ export default function Dashboard() {
         return;
       }
 
-      setUserId(user.id);
-
-      // GET PROFILE
-      let { data: profile, error } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
-        .select("*")
+        .select("is_premium")
         .eq("id", user.id)
         .single();
 
-      // 🔥 AUTO CREATE PROFILE IF MISSING (REAL SAAS FIX)
-      if (error || !profile) {
-        const { data: newProfile } = await supabase
-          .from("profiles")
-          .insert([
-            {
-              id: user.id,
-              xp: 0,
-              level: 1,
-              is_premium: false,
-              is_admin: false,
-            },
-          ])
-          .select()
-          .single();
-
-        profile = newProfile;
-      }
-
-      setXp(profile?.xp ?? 0);
-      setLevel(profile?.level ?? 1);
-
-      setLoading(false);
+      setPlan(profile?.is_premium ? "premium" : "basic");
     };
 
     loadUser();
@@ -141,27 +157,68 @@ export default function Dashboard() {
   /* =========================
      LEVEL SYSTEM
   ========================= */
+
   useEffect(() => {
     const newLevel = Math.floor(xp / 100) + 1;
 
-    if (newLevel !== prevLevel.current) {
+    if (newLevel > prevLevel.current) {
       prevLevel.current = newLevel;
       setLevel(newLevel);
+      setShake(true);
+      setTimeout(() => setShake(false), 400);
     }
   }, [xp]);
 
   /* =========================
-     CHAT + XP
+     START
   ========================= */
+
+  const startGoal = (g: Goal) => {
+    setGoal(g);
+
+    const autoCoach: Coach =
+      g === "money"
+        ? "business"
+        : g === "fitness"
+        ? "fitness"
+        : g === "study"
+        ? "study"
+        : "mindset";
+
+    setCoach(autoCoach);
+    setStep("app");
+
+    setMessages([
+      { role: "assistant", content: `🔥 Coach Activated: ${autoCoach}` },
+      { role: "assistant", content: `🎯 Mission: ${generateMission(g!)}` },
+    ]);
+  };
+
+  /* =========================
+     SEND MESSAGE
+========================= */
+
   const send = async () => {
     if (!input.trim()) return;
+
+    /* 🔐 PREMIUM GUARD (REAL SAAS PROTECTION) */
+    if (plan !== "premium") {
+      setMessages((p) => [
+        ...p,
+        {
+          role: "assistant",
+          content: "💎 Premium feature locked. Upgrade to unlock.",
+        },
+      ]);
+      return;
+    }
 
     const text = input;
     setInput("");
 
-    const newMessages = [
+    const newMessages: Message[] = [
       ...messages,
-      { role: "user" as const, content: text },
+      { role: "user", content: text },
     ];
 
     setMessages(newMessages);
@@ -169,7 +226,11 @@ export default function Dashboard() {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: newMessages.slice(-10) }),
+      body: JSON.stringify({
+        messages: newMessages.slice(-10),
+        goal,
+        coach,
+      }),
     });
 
     const data = await res.json();
@@ -179,59 +240,92 @@ export default function Dashboard() {
       { role: "assistant", content: data.reply },
     ]);
 
-    setXp((prev) => prev + 10);
-
-    // save XP safely (non-blocking)
-    if (userId) {
-      const newXP = xp + 10;
-      const newLevel = Math.floor(newXP / 100) + 1;
-
-      supabase
-        .from("profiles")
-        .update({
-          xp: newXP,
-          level: newLevel,
-        })
-        .eq("id", userId);
-    }
+    setXp((p) => p + rewardXP(goal || "mindset"));
   };
 
   /* =========================
-     LOADING
-  ========================= */
-  if (loading) {
+     ONBOARDING
+========================= */
+
+  if (step === "onboarding") {
     return (
-      <div style={{ color: "white", padding: 30 }}>
-        Loading system...
+      <div className="onboard">
+        <div className="card">
+          <h1>🌊 Choose your mission</h1>
+
+          <button onClick={() => startGoal("fitness")}>💪 Fitness</button>
+          <button onClick={() => startGoal("money")}>💰 Money</button>
+          <button onClick={() => startGoal("study")}>📚 Study</button>
+          <button onClick={() => startGoal("mindset")}>🧠 Mindset</button>
+
+          <button
+            onClick={() => {
+              setCoach("therapist");
+              setStep("app");
+            }}
+          >
+            🧘 Therapist Mode
+          </button>
+
+          <button
+            onClick={() => {
+              setCoach("free");
+              setStep("app");
+            }}
+          >
+            🆓 Free Mode
+          </button>
+        </div>
+
+        <style jsx>{`
+          .onboard {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            background: radial-gradient(circle at 20% 20%, rgba(0,255,255,0.15), transparent 35%),
+                        radial-gradient(circle at 80% 30%, rgba(0,120,255,0.18), transparent 40%),
+                        linear-gradient(#00111f, #000814);
+          }
+
+          .card {
+            width: 520px;
+            padding: 35px;
+            background: rgba(0,30,50,0.45);
+            backdrop-filter: blur(25px);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          button {
+            padding: 14px;
+            border-radius: 14px;
+            background: rgba(0,180,255,0.08);
+            border: 1px solid rgba(0,255,255,0.1);
+            color: white;
+          }
+        `}</style>
       </div>
     );
   }
 
   /* =========================
-     UI (UNCHANGED)
-  ========================= */
+     MAIN UI
+========================= */
+
   return (
-    <div className="space">
+    <div className={`space ${shake ? "shake" : ""}`}>
       <div className="bg" />
       <ShootingStars />
 
       <div className="sidebar">
-        <h2>🔥 Dashboard</h2>
         <p>XP: {xp}</p>
         <p>Level: {level}</p>
-
-        <button onClick={() => router.push("/pricing")}>
-          Upgrade
-        </button>
-
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            router.push("/login");
-          }}
-        >
-          Logout
-        </button>
+        <p>Plan: {plan}</p>
+        <p>Coach: {coach}</p>
       </div>
 
       <div className="main">
@@ -244,10 +338,7 @@ export default function Dashboard() {
         </div>
 
         <div className="bottom">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
+          <input value={input} onChange={(e) => setInput(e.target.value)} />
           <button onClick={send}>Send</button>
         </div>
       </div>
@@ -257,29 +348,25 @@ export default function Dashboard() {
           display: flex;
           height: 100vh;
           color: white;
-          overflow: hidden;
           background: #000814;
         }
 
         .bg {
           position: absolute;
           inset: 0;
-          background:
-            radial-gradient(circle at 20% 20%, rgba(99,102,241,0.3), transparent 40%),
-            radial-gradient(circle at 80% 30%, rgba(0,180,255,0.2), transparent 40%);
+          background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.3), transparent 40%),
+                      radial-gradient(circle at 80% 30%, rgba(0,180,255,0.2), transparent 40%);
         }
 
         .sidebar {
           width: 220px;
           padding: 16px;
-          z-index: 2;
         }
 
         .main {
           flex: 1;
           display: flex;
           flex-direction: column;
-          z-index: 2;
         }
 
         .chat {
