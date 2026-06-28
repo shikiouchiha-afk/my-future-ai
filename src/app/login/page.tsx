@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,108 +22,166 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
-    }
+      if (error) {
+        setError(error.message);
+        return;
+      }
 
-    if (data.session) {
+      if (!data?.session) {
+        setError("Login failed. Try again.");
+        return;
+      }
+
       router.push("/dashboard");
+    } catch (err) {
+      setError("Unexpected error occurred.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="bg">
+    <div className="space-bg">
+      <div className="overlay" />
+
       <div className="card">
-        <h1>WELCOME BACK</h1>
-        <p>Login to continue your AI mission</p>
+        <h1>MY FUTURE</h1>
+        <p className="subtitle">AI Mission Control Login</p>
 
         <form onSubmit={handleLogin}>
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Commander Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
 
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Access Code"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          {error && <div className="error">{error}</div>}
+          {error && <p style={{ color: "red" }}>{error}</p>}
 
-          <button disabled={loading}>
-            {loading ? "LOGGING IN..." : "LOGIN"}
+          <button type="submit" disabled={loading}>
+            {loading ? "ENTERING..." : "ENTER SYSTEM"}
           </button>
 
           <button
             type="button"
-            className="ghost"
+            className="secondary"
             onClick={() => router.push("/signup")}
           >
-            Create account
+            CREATE ACCOUNT
           </button>
         </form>
       </div>
 
       <style jsx>{`
-        .bg {
+        .space-bg {
           height: 100vh;
           display: flex;
           justify-content: center;
           align-items: center;
-          background: radial-gradient(circle at top, #0b1220, #000);
-          color: white;
+          position: relative;
+
+          background:
+            url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2000")
+            center/cover no-repeat;
+        }
+
+        .overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
         }
 
         .card {
+          position: relative;
+          z-index: 2;
+
           width: 420px;
-          padding: 35px;
-          border-radius: 18px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.12);
-          backdrop-filter: blur(20px);
+          padding: 40px;
+
+          border-radius: 20px;
+
+          background: rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(18px);
+
+          border: 1px solid rgba(255, 255, 255, 0.15);
+
           text-align: center;
+
+          box-shadow: 0 0 60px rgba(0, 150, 255, 0.2);
+        }
+
+        h1 {
+          color: white;
+          margin-bottom: 10px;
+          font-size: 2.5rem;
+          letter-spacing: 3px;
+        }
+
+        .subtitle {
+          color: rgba(255, 255, 255, 0.7);
+          margin-bottom: 25px;
         }
 
         input {
           width: 100%;
           padding: 14px;
-          margin: 10px 0;
+          margin-bottom: 12px;
+
           border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.15);
-          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+
+          background: rgba(255, 255, 255, 0.08);
           color: white;
+
+          outline: none;
+        }
+
+        input::placeholder {
+          color: rgba(255, 255, 255, 0.5);
         }
 
         button {
           width: 100%;
           padding: 14px;
           margin-top: 10px;
+
           border-radius: 10px;
           border: none;
-          background: linear-gradient(90deg, #00b4ff, #7c3aed);
+
+          background: linear-gradient(90deg, #007cf0, #00dfd8);
+
           color: white;
           font-weight: bold;
+
+          cursor: pointer;
         }
 
-        .ghost {
+        button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 0 25px rgba(0, 223, 216, 0.5);
+        }
+
+        .secondary {
           background: transparent;
-          border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .error {
-          color: red;
-          font-size: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
         }
       `}</style>
     </div>
