@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
+  // safer: let Stripe auto-handle API version
 });
 
 export async function POST(req: NextRequest) {
@@ -16,25 +16,18 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_URL;
 
     if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json(
-        { error: "Missing STRIPE_SECRET_KEY" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY" }, { status: 500 });
     }
 
     if (!priceId) {
-      return NextResponse.json(
-        { error: "Missing STRIPE_PRICE_ID" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Missing STRIPE_PRICE_ID" }, { status: 500 });
     }
 
     if (!baseUrl) {
-      return NextResponse.json(
-        { error: "Missing NEXT_PUBLIC_URL" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Missing NEXT_PUBLIC_URL" }, { status: 500 });
     }
+
+    console.log("Stripe checkout request:", { userId, yearly, priceId });
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -52,17 +45,19 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // HARD SAFETY CHECK (prevents silent failure)
-    if (!session || !session.url) {
+    console.log("Stripe session created:", session.id);
+
+    if (!session.url) {
+      console.error("Stripe session missing URL:", session);
       return NextResponse.json(
-        { error: "Stripe session failed (no URL returned)" },
+        { error: "Stripe session failed: no URL returned" },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
-    console.error("Stripe checkout error:", err);
+    console.error("Stripe FULL ERROR:", err);
 
     return NextResponse.json(
       {
