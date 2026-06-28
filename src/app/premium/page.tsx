@@ -106,7 +106,7 @@ function ShootingStars() {
 }
 
 /* =========================
-   MAIN SAAS DASHBOARD
+   MAIN APP
 ========================= */
 
 export default function Page() {
@@ -123,12 +123,13 @@ export default function Page() {
   const [level, setLevel] = useState(1);
   const [shake, setShake] = useState(false);
 
-  const [plan, setPlan] = useState<"basic" | "premium">("basic");
+  /* 🔐 REAL SAAS PLAN */
+  const [plan, setPlan] = useState<"loading" | "basic" | "premium">("loading");
 
   const prevLevel = useRef(1);
 
   /* =========================
-     LOAD USER + PREMIUM CHECK
+     LOAD USER + PREMIUM STATUS
   ========================= */
 
   useEffect(() => {
@@ -169,7 +170,7 @@ export default function Page() {
   }, [xp]);
 
   /* =========================
-     START
+     START COACH
   ========================= */
 
   const startGoal = (g: Goal) => {
@@ -194,16 +195,22 @@ export default function Page() {
   };
 
   /* =========================
-     SEND MESSAGE
+     SEND MESSAGE (SAAS LOCK)
   ========================= */
 
   const send = async () => {
     if (!input.trim()) return;
 
+    if (plan === "loading") return;
+
+    /* 🔐 PREMIUM LOCK */
     if (plan !== "premium") {
       setMessages((p) => [
         ...p,
-        { role: "assistant", content: "💎 Premium locked. Upgrade to unlock." },
+        {
+          role: "assistant",
+          content: "💎 Premium locked. Upgrade to unlock full AI system.",
+        },
       ]);
       return;
     }
@@ -225,6 +232,7 @@ export default function Page() {
         messages: newMessages.slice(-10),
         goal,
         coach,
+        system: `You are a specialist AI coach. Stay strictly in role: ${coach}`,
       }),
     });
 
@@ -298,7 +306,7 @@ export default function Page() {
   }
 
   /* =========================
-     MAIN UI (FIXED INPUT Z-INDEX)
+     MAIN DASHBOARD
   ========================= */
 
   return (
@@ -387,8 +395,6 @@ export default function Page() {
           display: flex;
           padding: 12px;
           gap: 10px;
-          position: relative;
-          z-index: 3;
         }
 
         input {
@@ -397,8 +403,6 @@ export default function Page() {
           background: rgba(255,255,255,0.08);
           border: 1px solid #333;
           color: white;
-          position: relative;
-          z-index: 3;
         }
 
         button {
