@@ -72,7 +72,7 @@ function ShootingStars() {
 }
 
 /* =========================
-   MAIN
+   MAIN DASHBOARD
 ========================= */
 
 export default function Dashboard() {
@@ -84,11 +84,11 @@ export default function Dashboard() {
 
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
-  const prevLevel = useRef(1);
 
+  const prevLevel = useRef(1);
   const [levelUp, setLevelUp] = useState(false);
 
-  /* AUTH CHECK (safer) */
+  /* AUTH CHECK */
   useEffect(() => {
     const check = async () => {
       const { data } = await supabase.auth.getSession();
@@ -103,12 +103,20 @@ export default function Dashboard() {
     check();
   }, []);
 
-  /* LEVEL SYSTEM */
-  useEffect(() => {
-    const newLevel = Math.floor(xp / 100) + 1;
+  /* =========================
+     XP + LEVEL SYSTEM (FIXED)
+  ========================= */
 
-    if (newLevel > prevLevel.current) {
+  const calculateLevel = (xpValue: number) => {
+    return Math.floor(xpValue / 100) + 1;
+  };
+
+  useEffect(() => {
+    const newLevel = calculateLevel(xp);
+
+    if (newLevel !== prevLevel.current) {
       prevLevel.current = newLevel;
+
       setLevel(newLevel);
 
       setLevelUp(true);
@@ -116,7 +124,14 @@ export default function Dashboard() {
     }
   }, [xp]);
 
-  /* CHAT */
+  const addXP = (amount: number) => {
+    setXp((prev) => prev + amount);
+  };
+
+  /* =========================
+     CHAT
+  ========================= */
+
   const send = async () => {
     if (!input.trim()) return;
 
@@ -145,10 +160,14 @@ export default function Dashboard() {
       { role: "assistant", content: data.reply },
     ]);
 
-    setXp((p) => p + 10);
+    // FIXED XP UPDATE
+    addXP(10);
   };
 
-  /* LOADING */
+  /* =========================
+     LOADING
+  ========================= */
+
   if (loading) {
     return (
       <div style={{ color: "white", padding: 30 }}>
@@ -156,6 +175,10 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  /* =========================
+     UI
+  ========================= */
 
   return (
     <div className="space">
@@ -193,7 +216,10 @@ export default function Dashboard() {
         </div>
 
         <div className="bottom">
-          <input value={input} onChange={(e) => setInput(e.target.value)} />
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
           <button onClick={send}>Send</button>
         </div>
       </div>
