@@ -4,14 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-/* =========================
-   SUPABASE CLIENT
-========================= */
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function LoginPage() {
   const router = useRouter();
 
@@ -25,19 +17,45 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
+    // ✅ SAFE: client only created when user clicks login
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setLoading(false);
-
     if (error || !data.user) {
+      setLoading(false);
       setError("Invalid email or password");
       return;
     }
 
-    // SUCCESS LOGIN → go dashboard
+    const user = data.user;
+
+    // ✅ CREATE PROFILE IF NOT EXISTS
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (!existingProfile) {
+      await supabase.from("profiles").insert({
+        id: user.id,
+        email: user.email,
+        xp: 0,
+        level: 1,
+        plan: "basic",
+      });
+    }
+
+    setLoading(false);
+
+    // ✅ GO DASHBOARD
     router.push("/dashboard");
   };
 
@@ -52,24 +70,22 @@ export default function LoginPage() {
         <form onSubmit={handleLogin}>
           <input
             type="email"
-            placeholder="Email"
+            placeholder="Commander Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
           />
 
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Access Code"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
           />
 
           {error && <p style={{ color: "red" }}>{error}</p>}
 
           <button type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "ENTER SYSTEM"}
+            {loading ? "ENTERING..." : "ENTER SYSTEM"}
           </button>
 
           <button
@@ -89,7 +105,8 @@ export default function LoginPage() {
           justify-content: center;
           align-items: center;
           position: relative;
-          background: url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2000")
+          background:
+            url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2000")
             center/cover no-repeat;
         }
 
