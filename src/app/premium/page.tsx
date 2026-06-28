@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 /* =========================
    TYPES
@@ -10,36 +12,6 @@ type Message = {
   role: "user" | "assistant";
   content: string;
 };
-
-type Goal = "fitness" | "money" | "study" | "mindset" | null;
-
-type Coach =
-  | "business"
-  | "fitness"
-  | "study"
-  | "life"
-  | "mindset"
-  | "therapist"
-  | "free";
-
-/* =========================
-   CORE LOGIC
-========================= */
-
-function generateMission(goal: string) {
-  const missions = {
-    fitness: "Do 10 pushups right now.",
-    money: "Write 1 way to make $ today.",
-    study: "Study focused for 15 minutes.",
-    mindset: "Write 3 goals for your life.",
-  };
-
-  return missions[goal as keyof typeof missions];
-}
-
-function rewardXP(goal: string) {
-  return 10 + (goal === "money" ? 8 : goal === "study" ? 6 : 5);
-}
 
 /* =========================
    SHOOTING STARS
@@ -104,29 +76,35 @@ function ShootingStars() {
 }
 
 /* =========================
-   PAGE
+   MAIN
 ========================= */
 
-export default function Page() {
-  const [step, setStep] = useState<"onboarding" | "app">("onboarding");
-  const [goal, setGoal] = useState<Goal>(null);
-  const [coach, setCoach] = useState<Coach | null>(null);
+export default function Dashboard() {
+  const router = useRouter();
 
+  const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
 
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
-  const [shake, setShake] = useState(false);
-
-  /* 🔥 FIXED: PLAN SYSTEM (THIS WAS MISSING) */
-  const [plan] = useState<"basic" | "premium">(
-    typeof window !== "undefined"
-      ? (localStorage.getItem("plan") as "basic" | "premium") || "basic"
-      : "basic"
-  );
 
   const prevLevel = useRef(1);
+
+  /* AUTH CHECK */
+  useEffect(() => {
+    const check = async () => {
+      const { data } = await supabase.auth.getSession();
+
+      if (!data.session) {
+        router.replace("/login");
+      } else {
+        setLoading(false);
+      }
+    };
+
+    check();
+  }, []);
 
   /* LEVEL SYSTEM */
   useEffect(() => {
@@ -135,44 +113,19 @@ export default function Page() {
     if (newLevel > prevLevel.current) {
       prevLevel.current = newLevel;
       setLevel(newLevel);
-
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
     }
   }, [xp]);
 
-  /* START */
-  const startGoal = (g: Goal) => {
-    setGoal(g);
-
-    const autoCoach: Coach =
-      g === "money"
-        ? "business"
-        : g === "fitness"
-        ? "fitness"
-        : g === "study"
-        ? "study"
-        : "mindset";
-
-    setCoach(autoCoach);
-    setStep("app");
-
-    setMessages([
-      { role: "assistant", content: `🔥 Coach Activated: ${autoCoach}` },
-      { role: "assistant", content: `🎯 Mission: ${generateMission(g!)}` },
-    ]);
-  };
-
-  /* SEND */
+  /* CHAT */
   const send = async () => {
     if (!input.trim()) return;
 
     const text = input;
     setInput("");
 
-    const newMessages: Message[] = [
+    const newMessages = [
       ...messages,
-      { role: "user" as const, content: text },
+      { role: "user", content: text },
     ];
 
     setMessages(newMessages);
@@ -182,8 +135,6 @@ export default function Page() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages: newMessages.slice(-10),
-        goal,
-        coach,
       }),
     });
 
@@ -194,95 +145,50 @@ export default function Page() {
       { role: "assistant", content: data.reply },
     ]);
 
-    setXp((p) => p + rewardXP(goal || "mindset"));
+    setXp((p) => p + 10);
   };
 
-  /* ONBOARDING */
-  if (step === "onboarding") {
+  /* LOADING */
+  if (loading) {
     return (
-      <div className="onboard">
-        <div className="card">
-          <h1>🌊 Choose your mission</h1>
-
-          <button onClick={() => startGoal("fitness")}>💪 Fitness</button>
-          <button onClick={() => startGoal("money")}>💰 Money</button>
-          <button onClick={() => startGoal("study")}>📚 Study</button>
-          <button onClick={() => startGoal("mindset")}>🧠 Mindset</button>
-
-          <button onClick={() => { setCoach("therapist"); setStep("app"); }}>
-            🧘 Therapist Mode
-          </button>
-
-          <button onClick={() => { setCoach("free"); setStep("app"); }}>
-            🆓 Free Mode
-          </button>
-        </div>
-
-        <style jsx>{`
-          .onboard {
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            position: relative;
-            color: white;
-
-            background:
-              radial-gradient(circle at 20% 20%, rgba(0,255,255,0.15), transparent 35%),
-              radial-gradient(circle at 80% 30%, rgba(0,120,255,0.18), transparent 40%),
-              radial-gradient(circle at 50% 80%, rgba(0,180,255,0.12), transparent 45%),
-              linear-gradient(#00111f, #000814);
-          }
-
-          .card {
-            width: 520px;
-            padding: 35px;
-            background: rgba(0,30,50,0.45);
-            backdrop-filter: blur(25px);
-            border: 1px solid rgba(0,255,255,0.15);
-            border-radius: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            text-align: center;
-            z-index: 2;
-          }
-
-          button {
-            padding: 14px;
-            background: rgba(0,180,255,0.08);
-            border: 1px solid rgba(0,255,255,0.1);
-            color: white;
-            border-radius: 14px;
-            transition: 0.3s;
-            font-weight: 600;
-          }
-
-          button:hover {
-            transform: translateY(-3px);
-            background: rgba(0,180,255,0.18);
-          }
-        `}</style>
+      <div style={{ color: "white", padding: 30 }}>
+        Loading dashboard...
       </div>
     );
   }
 
-  /* MAIN DASHBOARD */
   return (
-    <div className={`space ${shake ? "shake" : ""}`}>
+    <div className="space">
       <div className="bg" />
       <ShootingStars />
-      <div className="orb" />
 
       <div className="sidebar">
+        <h2>🔥 Dashboard</h2>
         <p>XP: {xp}</p>
         <p>Level: {level}</p>
 
-        {/* 🔥 FIXED: PLAN DISPLAY SAFE */}
-        <p>Plan: {plan}</p>
+        <button
+          onClick={() => router.push("/pricing")}
+          style={{
+            marginTop: 10,
+            padding: 10,
+            background: "#00b4ff",
+            border: "none",
+            color: "white",
+            borderRadius: 8,
+          }}
+        >
+          Upgrade
+        </button>
 
-        <p>Coach: {coach}</p>
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            router.push("/login");
+          }}
+        >
+          Logout
+        </button>
       </div>
 
       <div className="main">
@@ -295,7 +201,10 @@ export default function Page() {
         </div>
 
         <div className="bottom">
-          <input value={input} onChange={(e) => setInput(e.target.value)} />
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
           <button onClick={send}>Send</button>
         </div>
       </div>
@@ -315,17 +224,6 @@ export default function Page() {
           background:
             radial-gradient(circle at 20% 20%, rgba(99,102,241,0.3), transparent 40%),
             radial-gradient(circle at 80% 30%, rgba(0,180,255,0.2), transparent 40%);
-        }
-
-        .orb {
-          position: absolute;
-          top: 60px;
-          right: 60px;
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background: radial-gradient(circle, #00b4ff, transparent);
-          animation: pulse 2s infinite;
         }
 
         .sidebar {
