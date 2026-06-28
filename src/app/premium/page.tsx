@@ -10,9 +10,8 @@ type Message = {
 };
 
 /* =========================
-   SHOOTING STARS
+   SHOOTING STARS BACKGROUND
 ========================= */
-
 function ShootingStars() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -72,10 +71,10 @@ function ShootingStars() {
 }
 
 /* =========================
-   MAIN DASHBOARD
+   MAIN PREMIUM DASHBOARD
 ========================= */
 
-export default function Dashboard() {
+export default function PremiumDashboard() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
@@ -84,20 +83,19 @@ export default function Dashboard() {
 
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const prevLevel = useRef(1);
   const [levelUp, setLevelUp] = useState(false);
 
-  const [userId, setUserId] = useState<string | null>(null);
-
   /* =========================
-     AUTH + LOAD XP FROM DB
+     AUTH + PREMIUM CHECK
   ========================= */
   useEffect(() => {
     const loadUser = async () => {
       const { data } = await supabase.auth.getUser();
-
       const user = data?.user;
+
       if (!user) {
         router.replace("/login");
         return;
@@ -107,15 +105,23 @@ export default function Dashboard() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("xp, level")
+        .select("xp, level, is_premium")
         .eq("id", user.id)
         .single();
 
-      if (profile) {
-        setXp(profile.xp ?? 0);
-        setLevel(profile.level ?? 1);
+      if (!profile) {
+        router.replace("/dashboard");
+        return;
       }
 
+      // 🚫 BLOCK NON-PREMIUM USERS
+      if (!profile.is_premium) {
+        router.replace("/dashboard");
+        return;
+      }
+
+      setXp(profile.xp ?? 0);
+      setLevel(profile.level ?? 1);
       setLoading(false);
     };
 
@@ -123,24 +129,8 @@ export default function Dashboard() {
   }, []);
 
   /* =========================
-     SAVE XP TO DATABASE
+     XP SYSTEM
   ========================= */
-  const saveXP = async (newXP: number, newLevel: number) => {
-    if (!userId) return;
-
-    await supabase
-      .from("profiles")
-      .update({
-        xp: newXP,
-        level: newLevel,
-      })
-      .eq("id", userId);
-  };
-
-  /* =========================
-     XP SYSTEM (FIXED + FUN)
-  ========================= */
-
   const getXPForMessage = (text: string) => {
     const words = text.trim().split(/\s+/).filter(Boolean).length;
 
@@ -151,8 +141,23 @@ export default function Dashboard() {
     return 25;
   };
 
-  const calculateLevel = (xpValue: number) => {
-    return Math.floor(xpValue / 100) + 1;
+  const calculateLevel = (xpValue: number) =>
+    Math.floor(xpValue / 100) + 1;
+
+  const addXP = async (amount: number) => {
+    if (!userId) return;
+
+    setXp((prev) => {
+      const newXP = prev + amount;
+      const newLevel = calculateLevel(newXP);
+
+      supabase
+        .from("profiles")
+        .update({ xp: newXP, level: newLevel })
+        .eq("id", userId);
+
+      return newXP;
+    });
   };
 
   useEffect(() => {
@@ -161,37 +166,23 @@ export default function Dashboard() {
     if (newLevel !== prevLevel.current) {
       prevLevel.current = newLevel;
       setLevel(newLevel);
-
       setLevelUp(true);
       setTimeout(() => setLevelUp(false), 1200);
     }
   }, [xp]);
 
-  const addXP = (amount: number) => {
-    setXp((prev) => {
-      const newXP = prev + amount;
-      const newLevel = calculateLevel(newXP);
-
-      // 💾 SAVE TO DATABASE
-      saveXP(newXP, newLevel);
-
-      return newXP;
-    });
-  };
-
   /* =========================
-     CHAT
+     CHAT SYSTEM
   ========================= */
-
   const send = async () => {
     if (!input.trim()) return;
 
     const text = input;
     setInput("");
 
-    const newMessages: Message[] = [
+    const newMessages = [
       ...messages,
-      { role: "user", content: text },
+      { role: "user" as const, content: text },
     ];
 
     setMessages(newMessages);
@@ -199,9 +190,7 @@ export default function Dashboard() {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: newMessages.slice(-10),
-      }),
+      body: JSON.stringify({ messages: newMessages.slice(-10) }),
     });
 
     const data = await res.json();
@@ -211,26 +200,23 @@ export default function Dashboard() {
       { role: "assistant", content: data.reply },
     ]);
 
-    const gained = getXPForMessage(text);
-    addXP(gained);
+    addXP(getXPForMessage(text));
   };
 
   /* =========================
-     LOADING
+     LOADING SCREEN
   ========================= */
-
   if (loading) {
     return (
       <div style={{ color: "white", padding: 30 }}>
-        Loading dashboard...
+        Loading premium system...
       </div>
     );
   }
 
   /* =========================
-     UI (UNCHANGED)
+     UI
   ========================= */
-
   return (
     <div className="space">
       <div className="bg" />
@@ -239,7 +225,8 @@ export default function Dashboard() {
       {levelUp && <div className="levelUp">✨ LEVEL UP!</div>}
 
       <div className="sidebar">
-        <h2>🔥 Dashboard</h2>
+        <h2>💎 Premium Dashboard</h2>
+
         <p>XP: {xp}</p>
         <p>Level: {level}</p>
 
@@ -281,7 +268,7 @@ export default function Dashboard() {
           height: 100vh;
           color: white;
           overflow: hidden;
-          background: #000814;
+          background: radial-gradient(circle at top, #0b1020, #000);
         }
 
         .bg {
@@ -293,7 +280,7 @@ export default function Dashboard() {
         }
 
         .sidebar {
-          width: 220px;
+          width: 240px;
           padding: 16px;
           z-index: 2;
         }
