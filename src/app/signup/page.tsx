@@ -50,12 +50,17 @@ export default function SignupPage() {
         return;
       }
 
-      // 2. CREATE PROFILE (IMPORTANT FOR SaaS)
+      // 2. CREATE PROFILE (SAAS FIXED)
       const { error: profileError } = await supabase.from("profiles").insert({
         id: user.id,
         email: user.email,
         name: name,
-        is_premium: false,
+
+        /* 🔥 ADDED FOR FULL SAAS SYSTEM */
+        plan: "basic",
+        xp: 0,
+        level: 1,
+
         created_at: new Date().toISOString(),
       });
 

@@ -104,8 +104,18 @@ export default function Dashboard() {
   }, []);
 
   /* =========================
-     XP + LEVEL SYSTEM (FIXED)
+     FIXED XP SYSTEM (REALISTIC)
   ========================= */
+
+  const getXPForMessage = (text: string) => {
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+
+    if (words < 5) return 5;
+    if (words < 15) return 8;
+    if (words < 30) return 12;
+    if (words < 60) return 18;
+    return 25;
+  };
 
   const calculateLevel = (xpValue: number) => {
     return Math.floor(xpValue / 100) + 1;
@@ -116,7 +126,6 @@ export default function Dashboard() {
 
     if (newLevel !== prevLevel.current) {
       prevLevel.current = newLevel;
-
       setLevel(newLevel);
 
       setLevelUp(true);
@@ -160,8 +169,9 @@ export default function Dashboard() {
       { role: "assistant", content: data.reply },
     ]);
 
-    // FIXED XP UPDATE
-    addXP(10);
+    // ✅ FIXED XP LOGIC (REALISTIC PROGRESSION)
+    const gained = getXPForMessage(text);
+    addXP(gained);
   };
 
   /* =========================
@@ -177,7 +187,7 @@ export default function Dashboard() {
   }
 
   /* =========================
-     UI
+     UI (UNCHANGED)
   ========================= */
 
   return (

@@ -4,52 +4,26 @@ import { useState } from "react";
 
 export default function PricingPage() {
   const [loading, setLoading] = useState(false);
-  const [yearly, setYearly] = useState(false);
 
   const buyPremium = async () => {
     try {
       setLoading(true);
-
-      console.log("🔥 BUTTON CLICKED");
 
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ yearly }),
+        body: JSON.stringify({}),
       });
 
-      console.log("🔥 RESPONSE STATUS:", res.status);
+      const data = await res.json();
 
-      const text = await res.text();
-      console.log("🔥 RAW RESPONSE:", text);
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        console.error("❌ RESPONSE IS NOT JSON");
-        return;
+      if (data?.url) {
+        window.location.href = data.url;
       }
-
-      console.log("🔥 PARSED DATA:", data);
-
-      if (!res.ok) {
-        console.error("❌ API ERROR:", data);
-        return;
-      }
-
-      if (!data?.url) {
-        console.error("❌ NO STRIPE URL RETURNED");
-        return;
-      }
-
-      console.log("🚀 REDIRECTING TO STRIPE:", data.url);
-
-      window.location.href = data.url;
     } catch (err) {
-      console.error("❌ REQUEST FAILED:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -57,48 +31,33 @@ export default function PricingPage() {
 
   return (
     <div className="page">
-      <div className="orbs" />
+      <div className="ocean" />
+      <div className="bubbles" />
 
       <div className="container">
-        <h1 className="title">Unlock Your Future AI System 🌌</h1>
+        <h1 className="title">🌊 Dive Into Your Future AI Universe</h1>
 
         <p className="subtitle">
-          Upgrade to a multi-coach intelligence system built for real growth
+          One intelligent system. Six AI minds. Infinite personal growth.
         </p>
 
-        {/* VALUE LINE */}
-        <div className="valueLine">
-          Elite System — Premium AI Universe — $26.99/mo — AI that upgrades mindset, body, money, business, emotions & learning in one system.
-        </div>
-
-        {/* TOGGLE */}
-        <div className="toggle">
-          <button
-            className={!yearly ? "active" : ""}
-            onClick={() => setYearly(false)}
-          >
-            Monthly
-          </button>
-
-          <button
-            className={yearly ? "active" : ""}
-            onClick={() => setYearly(true)}
-          >
-            Yearly (Save 25%)
-          </button>
+        <div className="glowLine">
+          Premium AI Universe — $26.99/mo — built to upgrade your mindset, body, money, business & life.
         </div>
 
         {/* CARDS */}
         <div className="grid">
+
           {/* BASIC */}
           <div className="card">
             <h2>Basic</h2>
             <p className="price">$0</p>
 
             <ul>
-              <li>Limited AI chat</li>
-              <li>Basic responses</li>
-              <li>Slow speed</li>
+              <li>Limited AI conversations</li>
+              <li>Standard response speed</li>
+              <li>No memory system</li>
+              <li>Basic support</li>
             </ul>
 
             <button className="basicBtn">Current Plan</button>
@@ -106,16 +65,15 @@ export default function PricingPage() {
 
           {/* PREMIUM */}
           <div className="card premium">
-            <div className="badge">🔥 Elite System</div>
+            <div className="badge">🌊 Premium AI Universe</div>
 
-            <h2>Premium AI Universe</h2>
+            <h2>Elite Deep Ocean System</h2>
 
-            <p className="price">
-              {yearly ? "$19.99/mo" : "$26.99/mo"}
-            </p>
+            <p className="price">$26.99/mo</p>
 
             <div className="coachBox">
-              🤖 6 AI Coaches — Mindset • Fitness • Money • Business • Therapy • Study — all in one system
+              🤖 <b>6 AI Coaches in One System</b><br />
+              Mindset • Fitness • Money • Business • Therapy • Study
             </div>
 
             <ul>
@@ -124,12 +82,14 @@ export default function PricingPage() {
               <li>🚀 Personalized growth tracking</li>
               <li>🔥 Faster premium AI responses</li>
               <li>🌌 Priority access to new features</li>
+              <li>💎 Deep personalization across all chats</li>
             </ul>
 
             <button onClick={buyPremium} className="premiumBtn">
-              {loading ? "Processing..." : "Upgrade Now"}
+              {loading ? "Entering Ocean..." : "Unlock Premium AI Universe"}
             </button>
           </div>
+
         </div>
       </div>
 
@@ -139,22 +99,38 @@ export default function PricingPage() {
           display: flex;
           justify-content: center;
           align-items: center;
-          background: radial-gradient(circle at top, #020617, #000);
+          background: radial-gradient(circle at top, #020617, #000814);
           color: white;
           padding: 40px;
           position: relative;
           overflow: hidden;
         }
 
-        .orbs {
+        /* 🌊 DEEP OCEAN EFFECT */
+        .ocean {
           position: absolute;
-          width: 100%;
-          height: 100%;
+          inset: 0;
           background:
-            radial-gradient(circle at 20% 20%, #7c3aed55, transparent 40%),
-            radial-gradient(circle at 80% 30%, #00b4ff55, transparent 40%),
-            radial-gradient(circle at 50% 80%, #22c55e33, transparent 40%);
-          filter: blur(60px);
+            radial-gradient(circle at 20% 20%, rgba(0,180,255,0.25), transparent 45%),
+            radial-gradient(circle at 80% 40%, rgba(30,64,175,0.25), transparent 50%),
+            radial-gradient(circle at 50% 80%, rgba(124,58,237,0.2), transparent 55%);
+          filter: blur(70px);
+        }
+
+        /* bubbles animation */
+        .bubbles::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(circle, rgba(255,255,255,0.08) 2px, transparent 3px);
+          background-size: 60px 60px;
+          opacity: 0.15;
+          animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+          from { transform: translateY(0px); }
+          to { transform: translateY(-200px); }
         }
 
         .container {
@@ -165,117 +141,104 @@ export default function PricingPage() {
         }
 
         .title {
-          font-size: 44px;
-          font-weight: bold;
+          font-size: 42px;
+          font-weight: 800;
         }
 
         .subtitle {
-          color: #aaa;
+          color: #a5b4fc;
           margin-bottom: 20px;
         }
 
-        .valueLine {
-          margin: 10px auto 25px;
-          padding: 12px;
+        .glowLine {
+          margin: 10px auto 30px;
+          padding: 14px;
           font-size: 13px;
-          color: #ddd;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 12px;
-        }
-
-        .toggle {
-          display: flex;
-          justify-content: center;
-          gap: 10px;
-          margin-bottom: 30px;
-        }
-
-        .toggle button {
-          padding: 10px 18px;
-          border-radius: 999px;
-          border: none;
-          background: rgba(255,255,255,0.08);
-          color: #aaa;
-          cursor: pointer;
-        }
-
-        .toggle .active {
-          background: linear-gradient(90deg, #7c3aed, #00b4ff);
-          color: white;
+          color: #dbeafe;
+          background: rgba(0,180,255,0.08);
+          border: 1px solid rgba(0,180,255,0.2);
+          border-radius: 14px;
         }
 
         .grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 20px;
+          gap: 22px;
         }
 
         .card {
           background: rgba(255,255,255,0.06);
           border: 1px solid rgba(255,255,255,0.1);
-          backdrop-filter: blur(20px);
-          border-radius: 20px;
+          backdrop-filter: blur(18px);
+          border-radius: 22px;
           padding: 30px;
+          transition: 0.3s;
+        }
+
+        .card:hover {
+          transform: translateY(-5px);
         }
 
         .premium {
-          border: 1px solid #7c3aed;
-          box-shadow: 0 0 50px rgba(124,58,237,0.4);
+          border: 1px solid rgba(0,180,255,0.5);
+          box-shadow: 0 0 60px rgba(0,180,255,0.25);
         }
 
         .badge {
-          background: linear-gradient(90deg, #7c3aed, #00b4ff);
-          padding: 5px 12px;
+          display: inline-block;
+          padding: 6px 12px;
           border-radius: 999px;
           font-size: 12px;
-          display: inline-block;
+          background: linear-gradient(90deg, #00b4ff, #7c3aed);
           margin-bottom: 10px;
         }
 
         .price {
-          font-size: 34px;
+          font-size: 36px;
           margin: 10px 0;
+          font-weight: bold;
         }
 
         ul {
           list-style: none;
           padding: 0;
           margin: 20px 0;
+          text-align: left;
         }
 
         li {
           margin: 8px 0;
-          color: #ccc;
+          color: #cbd5e1;
         }
 
         .coachBox {
           font-size: 13px;
-          background: rgba(0,180,255,0.08);
+          background: rgba(0,180,255,0.1);
           padding: 14px;
           border-radius: 12px;
           margin: 15px 0;
           text-align: left;
+          border: 1px solid rgba(0,180,255,0.15);
         }
 
         .premiumBtn {
           width: 100%;
           padding: 12px;
           border: none;
-          border-radius: 12px;
+          border-radius: 14px;
           font-weight: bold;
           cursor: pointer;
           color: white;
-          background: linear-gradient(90deg, #7c3aed, #00b4ff);
+          background: linear-gradient(90deg, #00b4ff, #7c3aed);
         }
 
         .basicBtn {
           width: 100%;
           padding: 12px;
+          border-radius: 14px;
           border: none;
-          border-radius: 12px;
-          background: rgba(255,255,255,0.1);
-          color: #888;
+          background: rgba(255,255,255,0.08);
+          color: #94a3b8;
         }
 
         @media (max-width: 768px) {
