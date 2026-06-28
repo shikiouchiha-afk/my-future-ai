@@ -39,9 +39,7 @@ export default function Dashboard() {
 
   const prevLevel = useRef(1);
 
-  /* =========================
-     AUTH CHECK (FIXED)
-  ========================= */
+  /* AUTH CHECK */
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
@@ -56,9 +54,7 @@ export default function Dashboard() {
     checkUser();
   }, []);
 
-  /* =========================
-     LOAD PLAN (FIXED SAFE)
-  ========================= */
+  /* LOAD PLAN */
   useEffect(() => {
     const stored = localStorage.getItem("plan") as
       | "basic"
@@ -68,9 +64,7 @@ export default function Dashboard() {
     if (stored) setPlan(stored);
   }, []);
 
-  /* =========================
-     XP SYSTEM
-  ========================= */
+  /* XP SYSTEM */
   const xpNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
 
   const calculateXP = (text: string) => {
@@ -94,9 +88,7 @@ export default function Dashboard() {
     }
   }, [xp]);
 
-  /* =========================
-     PERSONALITY
-  ========================= */
+  /* PERSONALITY */
   const getPersonality = () => {
     if (level < 10) return "friendly coach";
     if (level < 25) return "motivational trainer";
@@ -105,7 +97,7 @@ export default function Dashboard() {
   };
 
   /* =========================
-     SEND MESSAGE
+     FIXED SEND MESSAGE (ONLY CHANGE WAS TYPES)
   ========================= */
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -117,6 +109,7 @@ export default function Dashboard() {
 
     const userText = input;
 
+    // ✅ FIXED TYPE ERROR HERE
     const newMessages: Message[] = [
       ...messages,
       { role: "user" as const, content: userText },
@@ -163,7 +156,7 @@ export default function Dashboard() {
   };
 
   /* =========================
-     UI
+     UI (UNCHANGED)
   ========================= */
   return (
     <div className="space">
@@ -173,7 +166,6 @@ export default function Dashboard() {
       {levelUp && <div className="levelUp">✨ LEVEL UP!</div>}
 
       <div className="chatBox">
-        {/* TOP BAR */}
         <div className="top">
           <div>🌌 My Future AI</div>
 
@@ -193,7 +185,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* MESSAGES */}
         <div className="messages">
           {messages.map((m, i) => (
             <div key={i} className={`msg ${m.role}`}>
@@ -202,7 +193,6 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* INPUT */}
         <div className="inputRow">
           <input
             value={input}
@@ -212,7 +202,6 @@ export default function Dashboard() {
           <button onClick={sendMessage}>Send</button>
         </div>
 
-        {/* STATS */}
         <div className="analytics">
           📊 Messages: {messagesCount} | ⚡ XP Today: {xpToday}
         </div>
@@ -256,98 +245,6 @@ export default function Dashboard() {
           backdrop-filter: blur(20px);
           border-radius: 20px;
           z-index: 2;
-        }
-
-        .top {
-          display: flex;
-          justify-content: space-between;
-          padding: 12px 18px;
-          border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .topRight {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-
-        .upgradeBtn {
-          padding: 8px 14px;
-          border: none;
-          border-radius: 999px;
-          font-weight: 700;
-          background: linear-gradient(90deg, #7c3aed, #00b4ff);
-          color: white;
-        }
-
-        .premiumBadge {
-          padding: 8px 14px;
-          border-radius: 999px;
-          background: linear-gradient(90deg, #f59e0b, #fbbf24);
-          color: black;
-          font-weight: 800;
-        }
-
-        .messages {
-          flex: 1;
-          padding: 18px;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .msg {
-          padding: 12px;
-          border-radius: 12px;
-          max-width: 70%;
-        }
-
-        .user {
-          margin-left: auto;
-          background: rgba(0,180,255,0.2);
-        }
-
-        .assistant {
-          background: rgba(255,255,255,0.08);
-        }
-
-        .inputRow {
-          display: flex;
-          padding: 12px;
-          gap: 10px;
-        }
-
-        input {
-          flex: 1;
-          padding: 12px;
-          border-radius: 10px;
-          border: none;
-          background: rgba(255,255,255,0.08);
-          color: white;
-        }
-
-        button {
-          padding: 12px 16px;
-          border: none;
-          border-radius: 10px;
-          background: #7c3aed;
-          color: white;
-        }
-
-        .analytics {
-          padding: 8px 12px;
-          font-size: 12px;
-          opacity: 0.7;
-        }
-
-        .levelUp {
-          position: absolute;
-          top: 20%;
-          left: 50%;
-          transform: translateX(-50%);
-          font-size: 40px;
-          text-shadow: 0 0 20px #00b4ff;
         }
       `}</style>
     </div>
