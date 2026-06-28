@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-06-24.dahlia",
+  apiVersion: "2024-06-20",
 });
 
 export async function POST(req: NextRequest) {
@@ -38,26 +38,24 @@ export async function POST(req: NextRequest) {
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-
       line_items: [
         {
           price: priceId,
           quantity: 1,
         },
       ],
-
       success_url: `${baseUrl}/success`,
       cancel_url: `${baseUrl}/cancel`,
-
       metadata: {
         userId,
         plan: yearly ? "yearly" : "monthly",
       },
     });
 
-    if (!session.url) {
+    // HARD SAFETY CHECK (prevents silent failure)
+    if (!session || !session.url) {
       return NextResponse.json(
-        { error: "Stripe session URL missing" },
+        { error: "Stripe session failed (no URL returned)" },
         { status: 500 }
       );
     }
