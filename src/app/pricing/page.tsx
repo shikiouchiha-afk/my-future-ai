@@ -10,7 +10,7 @@ export default function PricingPage() {
     try {
       setLoading(true);
 
-      console.log("Stripe click triggered");
+      console.log("🔥 BUTTON CLICKED");
 
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -20,24 +20,36 @@ export default function PricingPage() {
         body: JSON.stringify({ yearly }),
       });
 
-      const data = await res.json().catch(() => null);
+      console.log("🔥 RESPONSE STATUS:", res.status);
 
-      console.log("Stripe response:", data);
+      const text = await res.text();
+      console.log("🔥 RAW RESPONSE:", text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("❌ RESPONSE IS NOT JSON");
+        return;
+      }
+
+      console.log("🔥 PARSED DATA:", data);
 
       if (!res.ok) {
-        console.error("Stripe API error:", data);
+        console.error("❌ API ERROR:", data);
         return;
       }
 
       if (!data?.url) {
-        console.error("No Stripe URL returned");
+        console.error("❌ NO STRIPE URL RETURNED");
         return;
       }
 
-      // IMPORTANT: redirect to Stripe
+      console.log("🚀 REDIRECTING TO STRIPE:", data.url);
+
       window.location.href = data.url;
     } catch (err) {
-      console.error("Stripe request failed:", err);
+      console.error("❌ REQUEST FAILED:", err);
     } finally {
       setLoading(false);
     }
