@@ -42,7 +42,6 @@ export default function PricingPage() {
 
   return (
     <div className="page">
-      {/* ORB BACKGROUND */}
       <div className="orbs" />
 
       <div className="container">
@@ -50,6 +49,11 @@ export default function PricingPage() {
         <p className="subtitle">
           Upgrade to a multi-coach intelligence system built for real growth
         </p>
+
+        {/* VALUE LINE (what you asked for) */}
+        <div className="valueLine">
+          Elite System — Premium AI Universe — $26.99/mo — AI that upgrades your mindset, body, money, business, emotions & learning in one system.
+        </div>
 
         {/* TOGGLE */}
         <div className="toggle">
@@ -94,14 +98,7 @@ export default function PricingPage() {
             </p>
 
             <div className="coachBox">
-              🤖 6 AI Coaches Included:
-              <br /><br />
-              🧠 Mindset Coach — discipline, focus, identity  
-              💪 Fitness Coach — body transformation plans  
-              💰 Money Coach — income + business growth  
-              🚀 Business Coach — startup & scaling strategies  
-              🧘 Therapist Coach — emotional clarity & support  
-              📚 Study Coach — learning, exams, productivity  
+              🤖 6 AI Coaches Included — Mindset Coach (discipline, focus, identity) • Fitness Coach (body transformation plans) • Money Coach (income + business growth) • Business Coach (startup & scaling strategies) • Therapist Coach (emotional clarity & support) • Study Coach (learning, exams, productivity)
             </div>
 
             <ul>
@@ -132,7 +129,6 @@ export default function PricingPage() {
           overflow: hidden;
         }
 
-        /* ORBS */
         .orbs {
           position: absolute;
           width: 100%;
@@ -164,7 +160,17 @@ export default function PricingPage() {
 
         .subtitle {
           color: #aaa;
-          margin-bottom: 30px;
+          margin-bottom: 20px;
+        }
+
+        .valueLine {
+          margin: 10px auto 25px;
+          padding: 12px;
+          font-size: 13px;
+          color: #ddd;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 12px;
         }
 
         .toggle {
