@@ -4,17 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-/* =========================
-   TYPES
-========================= */
 type Message = {
   role: "user" | "assistant";
   content: string;
 };
-
-/* =========================
-   MAIN DASHBOARD
-========================= */
 
 export default function Dashboard() {
   const router = useRouter();
@@ -88,7 +81,6 @@ export default function Dashboard() {
     }
   }, [xp]);
 
-  /* PERSONALITY */
   const getPersonality = () => {
     if (level < 10) return "friendly coach";
     if (level < 25) return "motivational trainer";
@@ -97,7 +89,7 @@ export default function Dashboard() {
   };
 
   /* =========================
-     FIXED SEND MESSAGE (ONLY CHANGE WAS TYPES)
+     FIXED SEND MESSAGE (NO TYPE ERROR)
   ========================= */
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -109,11 +101,11 @@ export default function Dashboard() {
 
     const userText = input;
 
-    // ✅ FIXED TYPE ERROR HERE
-    const newMessages: Message[] = [
+    // ✅ FIX IS HERE (SAFE CAST FIX)
+    const newMessages = [
       ...messages,
-      { role: "user" as const, content: userText },
-    ];
+      { role: "user", content: userText },
+    ] as Message[];
 
     setMessages(newMessages);
     setInput("");
@@ -155,9 +147,6 @@ export default function Dashboard() {
     });
   };
 
-  /* =========================
-     UI (UNCHANGED)
-  ========================= */
   return (
     <div className="space">
       <div className="stars" />
@@ -245,6 +234,98 @@ export default function Dashboard() {
           backdrop-filter: blur(20px);
           border-radius: 20px;
           z-index: 2;
+        }
+
+        .top {
+          display: flex;
+          justify-content: space-between;
+          padding: 12px 18px;
+          border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .topRight {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+
+        .upgradeBtn {
+          padding: 8px 14px;
+          border: none;
+          border-radius: 999px;
+          font-weight: 700;
+          background: linear-gradient(90deg, #7c3aed, #00b4ff);
+          color: white;
+        }
+
+        .premiumBadge {
+          padding: 8px 14px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #f59e0b, #fbbf24);
+          color: black;
+          font-weight: 800;
+        }
+
+        .messages {
+          flex: 1;
+          padding: 18px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .msg {
+          padding: 12px;
+          border-radius: 12px;
+          max-width: 70%;
+        }
+
+        .user {
+          margin-left: auto;
+          background: rgba(0,180,255,0.2);
+        }
+
+        .assistant {
+          background: rgba(255,255,255,0.08);
+        }
+
+        .inputRow {
+          display: flex;
+          padding: 12px;
+          gap: 10px;
+        }
+
+        input {
+          flex: 1;
+          padding: 12px;
+          border-radius: 10px;
+          border: none;
+          background: rgba(255,255,255,0.08);
+          color: white;
+        }
+
+        button {
+          padding: 12px 16px;
+          border: none;
+          border-radius: 10px;
+          background: #7c3aed;
+          color: white;
+        }
+
+        .analytics {
+          padding: 8px 12px;
+          font-size: 12px;
+          opacity: 0.7;
+        }
+
+        .levelUp {
+          position: absolute;
+          top: 20%;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 40px;
+          text-shadow: 0 0 20px #00b4ff;
         }
       `}</style>
     </div>
