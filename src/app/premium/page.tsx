@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 /* =========================
    TYPES
@@ -108,6 +110,8 @@ function ShootingStars() {
 ========================= */
 
 export default function Page() {
+  const router = useRouter();
+
   const [step, setStep] = useState<"onboarding" | "app">("onboarding");
   const [goal, setGoal] = useState<Goal>(null);
   const [coach, setCoach] = useState<Coach | null>(null);
@@ -120,10 +124,41 @@ export default function Page() {
 
   const [shake, setShake] = useState(false);
 
-  /* FIXED PLAN (safe fallback) */
-  const [plan] = useState<"basic" | "premium">("premium");
+  const [plan, setPlan] = useState<"basic" | "premium">("basic");
 
   const prevLevel = useRef(1);
+
+  /* =========================
+     REAL PREMIUM CHECK (FIXED)
+  ========================= */
+  useEffect(() => {
+    const loadPlan = async () => {
+      const { data } = await supabase.auth.getUser();
+      const user = data?.user;
+
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_premium")
+        .eq("id", user.id)
+        .single();
+
+      const isPremium = profile?.is_premium;
+
+      setPlan(isPremium ? "premium" : "basic");
+
+      // 🚫 BLOCK NON PREMIUM USERS
+      if (!isPremium) {
+        router.replace("/pricing");
+      }
+    };
+
+    loadPlan();
+  }, [router]);
 
   /* LEVEL SYSTEM */
   useEffect(() => {
@@ -211,21 +246,11 @@ export default function Page() {
           <button onClick={() => startGoal("study")}>📚 Study</button>
           <button onClick={() => startGoal("mindset")}>🧠 Mindset</button>
 
-          <button
-            onClick={() => {
-              setCoach("therapist");
-              setStep("app");
-            }}
-          >
+          <button onClick={() => { setCoach("therapist"); setStep("app"); }}>
             🧘 Therapist Mode
           </button>
 
-          <button
-            onClick={() => {
-              setCoach("free");
-              setStep("app");
-            }}
-          >
+          <button onClick={() => { setCoach("free"); setStep("app"); }}>
             🆓 Free Mode
           </button>
         </div>
@@ -236,12 +261,8 @@ export default function Page() {
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow: hidden;
-            position: relative;
             color: white;
-            background: radial-gradient(circle at 20% 20%, rgba(0,255,255,0.15), transparent 35%),
-                        radial-gradient(circle at 80% 30%, rgba(0,120,255,0.18), transparent 40%),
-                        linear-gradient(#00111f, #000814);
+            background: #000814;
           }
 
           .card {
@@ -273,8 +294,6 @@ export default function Page() {
     <div className={`space ${shake ? "shake" : ""}`}>
       <div className="bg" />
       <ShootingStars />
-
-      <div className="orb" />
 
       <div className="sidebar">
         <p>XP: {xp}</p>
@@ -312,16 +331,6 @@ export default function Page() {
           inset: 0;
           background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.3), transparent 40%),
                       radial-gradient(circle at 80% 30%, rgba(0,180,255,0.2), transparent 40%);
-        }
-
-        .orb {
-          position: absolute;
-          top: 60px;
-          right: 60px;
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background: radial-gradient(circle, #00b4ff, transparent);
         }
 
         .sidebar {

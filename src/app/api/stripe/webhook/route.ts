@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-06-24.dahlia",
+  apiVersion: "2024-06-20",
 });
 
 const supabase = createClient(
@@ -12,12 +12,10 @@ const supabase = createClient(
 );
 
 export async function POST(req: Request) {
-  const sig = req.headers.get("stripe-signature");
-  if (!sig) return new NextResponse("No signature", { status: 400 });
-
   const body = await req.text();
+  const sig = req.headers.get("stripe-signature")!;
 
-  let event: Stripe.Event;
+  let event;
 
   try {
     event = stripe.webhooks.constructEvent(
@@ -25,20 +23,20 @@ export async function POST(req: Request) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-  } catch (err: any) {
-    return new NextResponse(err.message, { status: 400 });
+  } catch (err) {
+    return new NextResponse("Webhook Error", { status: 400 });
   }
 
+  // 🎯 WHEN PAYMENT SUCCEEDS
   if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const userId = session.metadata?.userId;
+    const session: any = event.data.object;
 
-    if (!userId) return NextResponse.json({ error: "No userId" });
+    const email = session.customer_email;
 
-    await supabase.from("profiles").update({
-      plan: "premium",
-      updated_at: new Date().toISOString(),
-    }).eq("id", userId);
+    await supabase
+      .from("profiles")
+      .update({ is_premium: true })
+      .eq("email", email);
   }
 
   return NextResponse.json({ received: true });
