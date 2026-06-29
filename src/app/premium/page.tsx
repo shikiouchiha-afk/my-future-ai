@@ -25,18 +25,18 @@ type Coach =
   | "free";
 
 /* =========================
-   CORE LOGIC
+   CORE
 ========================= */
 
 function generateMission(goal: string) {
-  const missions = {
+  const missions: any = {
     fitness: "Do 10 pushups right now.",
     money: "Write 1 way to make $ today.",
     study: "Study focused for 15 minutes.",
     mindset: "Write 3 goals for your life.",
   };
 
-  return missions[goal as keyof typeof missions];
+  return missions[goal] || "Stay consistent today.";
 }
 
 function rewardXP(goal: string) {
@@ -44,75 +44,14 @@ function rewardXP(goal: string) {
 }
 
 /* =========================
-   SHOOTING STARS
-========================= */
-
-function ShootingStars() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current!;
-    const ctx = canvas.getContext("2d")!;
-
-    let w = (canvas.width = window.innerWidth);
-    let h = (canvas.height = window.innerHeight);
-
-    const stars = Array.from({ length: 15 }).map(() => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      len: Math.random() * 60 + 20,
-      speed: Math.random() * 2 + 1,
-    }));
-
-    let frame: number;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, w, h);
-
-      for (const s of stars) {
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        ctx.lineTo(s.x + s.len, s.y + s.len);
-        ctx.strokeStyle = "rgba(255,255,255,0.6)";
-        ctx.stroke();
-
-        s.x += s.speed;
-        s.y += s.speed;
-
-        if (s.x > w || s.y > h) {
-          s.x = Math.random() * w;
-          s.y = 0;
-        }
-      }
-
-      frame = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: "absolute",
-        inset: 0,
-        zIndex: 1,
-        pointerEvents: "none",
-      }}
-    />
-  );
-}
-
-/* =========================
-   PAGE
+   MAIN PAGE
 ========================= */
 
 export default function Page() {
   const router = useRouter();
 
-  const [step, setStep] = useState<"onboarding" | "app">("onboarding");
+  const [step, setStep] = useState<"loading" | "onboarding" | "app">("loading");
+
   const [goal, setGoal] = useState<Goal>(null);
   const [coach, setCoach] = useState<Coach | null>(null);
 
@@ -122,19 +61,17 @@ export default function Page() {
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
 
-  const [shake, setShake] = useState(false);
-
-  const [plan, setPlan] = useState<"basic" | "premium">("basic");
+  const [isPremium, setIsPremium] = useState(false);
 
   const prevLevel = useRef(1);
 
   /* =========================
-     REAL PREMIUM CHECK (FIXED)
+     🔐 REAL PREMIUM CHECK (SECURE)
   ========================= */
   useEffect(() => {
-    const loadPlan = async () => {
+    const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
-      const user = data?.user;
+      const user = data.user;
 
       if (!user) {
         router.replace("/login");
@@ -147,32 +84,36 @@ export default function Page() {
         .eq("id", user.id)
         .single();
 
-      const isPremium = profile?.is_premium;
+      const premium = profile?.is_premium === true;
 
-      setPlan(isPremium ? "premium" : "basic");
+      setIsPremium(premium);
 
-      // 🚫 BLOCK NON PREMIUM USERS
-      if (!isPremium) {
+      if (!premium) {
         router.replace("/pricing");
+        return;
       }
+
+      setStep("onboarding");
     };
 
-    loadPlan();
+    checkUser();
   }, [router]);
 
-  /* LEVEL SYSTEM */
+  /* =========================
+     LEVEL SYSTEM
+  ========================= */
   useEffect(() => {
     const newLevel = Math.floor(xp / 100) + 1;
 
     if (newLevel > prevLevel.current) {
       prevLevel.current = newLevel;
       setLevel(newLevel);
-      setShake(true);
-      setTimeout(() => setShake(false), 400);
     }
   }, [xp]);
 
-  /* START */
+  /* =========================
+     START
+  ========================= */
   const startGoal = (g: Goal) => {
     setGoal(g);
 
@@ -189,18 +130,14 @@ export default function Page() {
     setStep("app");
 
     setMessages([
-      {
-        role: "assistant",
-        content: `🔥 Coach Activated: ${autoCoach}`,
-      },
-      {
-        role: "assistant",
-        content: `🎯 Mission: ${generateMission(g!)}`,
-      },
+      { role: "assistant", content: `🔥 Coach Activated: ${autoCoach}` },
+      { role: "assistant", content: `🎯 Mission: ${generateMission(g!)}` },
     ]);
   };
 
-  /* SEND */
+  /* =========================
+     SEND MESSAGE
+  ========================= */
   const send = async () => {
     if (!input.trim()) return;
 
@@ -221,6 +158,7 @@ export default function Page() {
         messages: newMessages.slice(-10),
         goal,
         coach,
+        isPremium,
       }),
     });
 
@@ -234,7 +172,20 @@ export default function Page() {
     setXp((p) => p + rewardXP(goal || "mindset"));
   };
 
-  /* ONBOARDING */
+  /* =========================
+     LOADING BLOCK
+  ========================= */
+  if (step === "loading") {
+    return (
+      <div style={{ color: "white", padding: 30 }}>
+        Checking premium access...
+      </div>
+    );
+  }
+
+  /* =========================
+     ONBOARDING
+  ========================= */
   if (step === "onboarding") {
     return (
       <div className="onboard">
@@ -246,11 +197,11 @@ export default function Page() {
           <button onClick={() => startGoal("study")}>📚 Study</button>
           <button onClick={() => startGoal("mindset")}>🧠 Mindset</button>
 
-          <button onClick={() => { setCoach("therapist"); setStep("app"); }}>
+          <button onClick={() => setCoach("therapist")}>
             🧘 Therapist Mode
           </button>
 
-          <button onClick={() => { setCoach("free"); setStep("app"); }}>
+          <button onClick={() => setCoach("free")}>
             🆓 Free Mode
           </button>
         </div>
@@ -269,7 +220,6 @@ export default function Page() {
             width: 520px;
             padding: 35px;
             background: rgba(0,30,50,0.45);
-            backdrop-filter: blur(25px);
             border-radius: 24px;
             display: flex;
             flex-direction: column;
@@ -289,16 +239,15 @@ export default function Page() {
     );
   }
 
-  /* MAIN */
+  /* =========================
+     APP
+  ========================= */
   return (
-    <div className={`space ${shake ? "shake" : ""}`}>
-      <div className="bg" />
-      <ShootingStars />
-
+    <div className="space">
       <div className="sidebar">
+        <p>🔥 PREMIUM ACTIVE</p>
         <p>XP: {xp}</p>
         <p>Level: {level}</p>
-        <p>Plan: {plan}</p>
         <p>Coach: {coach}</p>
       </div>
 
@@ -312,7 +261,10 @@ export default function Page() {
         </div>
 
         <div className="bottom">
-          <input value={input} onChange={(e) => setInput(e.target.value)} />
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
           <button onClick={send}>Send</button>
         </div>
       </div>
@@ -322,28 +274,18 @@ export default function Page() {
           display: flex;
           height: 100vh;
           color: white;
-          overflow: hidden;
           background: #000814;
-        }
-
-        .bg {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.3), transparent 40%),
-                      radial-gradient(circle at 80% 30%, rgba(0,180,255,0.2), transparent 40%);
         }
 
         .sidebar {
           width: 220px;
           padding: 16px;
-          z-index: 2;
         }
 
         .main {
           flex: 1;
           display: flex;
           flex-direction: column;
-          z-index: 2;
         }
 
         .chat {
