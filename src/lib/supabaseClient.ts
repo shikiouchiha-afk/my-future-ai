@@ -1,6 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import Stripe from "stripe";
 
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: undefined, // IMPORTANT: avoids TS version crash on Vercel
+});

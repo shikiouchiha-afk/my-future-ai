@@ -1,10 +1,8 @@
-import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { stripe } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-});
+export const runtime = "nodejs"; // IMPORTANT for Stripe
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +11,11 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   const body = await req.text();
-  const sig = req.headers.get("stripe-signature")!;
+  const sig = req.headers.get("stripe-signature");
+
+  if (!sig) {
+    return NextResponse.json({ error: "No signature" }, { status: 400 });
+  }
 
   let event;
 
@@ -24,7 +26,7 @@ export async function POST(req: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err) {
-    return NextResponse.json({ error: "Webhook error" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid webhook" }, { status: 400 });
   }
 
   /* =========================
@@ -33,7 +35,7 @@ export async function POST(req: Request) {
   if (event.type === "checkout.session.completed") {
     const session: any = event.data.object;
 
-    const userId = session.metadata?.userId;
+    const userId = session?.metadata?.userId;
 
     if (userId) {
       await supabase
