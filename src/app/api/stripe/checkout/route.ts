@@ -2,25 +2,12 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-/* =========================
-   STRIPE (FIXED)
-   - removed apiVersion to avoid build error
-========================= */
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-/* =========================
-   SUPABASE (SERVER)
-========================= */
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-/* =========================
-   CHECKOUT ROUTE
-========================= */
 
 export async function POST(req: Request) {
   try {
@@ -32,20 +19,22 @@ export async function POST(req: Request) {
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      mode: "payment",
+      mode: "subscription",
       line_items: [
         {
           price_data: {
             currency: "usd",
             product_data: {
-              name: "Premium Access",
+              name: "Premium AI Access",
             },
             unit_amount: 999, // $9.99
+            recurring: {
+              interval: "month",
+            },
           },
-          quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?success=true`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing`,
       metadata: {
         userId,
@@ -54,10 +43,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json(
-      { error: "Checkout failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Checkout failed" }, { status: 500 });
   }
 }
