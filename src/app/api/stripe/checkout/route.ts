@@ -1,28 +1,63 @@
-import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-06-24.dahlia",
-});
+/* =========================
+   STRIPE (FIXED)
+   - removed apiVersion to avoid build error
+========================= */
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+/* =========================
+   SUPABASE (SERVER)
+========================= */
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+/* =========================
+   CHECKOUT ROUTE
+========================= */
 
 export async function POST(req: Request) {
   try {
     const { userId } = await req.json();
 
-    const priceId = process.env.STRIPE_PRICE_ID!;
-    const baseUrl = process.env.NEXT_PUBLIC_URL!;
+    if (!userId) {
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    }
 
     const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
       payment_method_types: ["card"],
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/success`,
-      cancel_url: `${baseUrl}/cancel`,
-      metadata: { userId },
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Premium Access",
+            },
+            unit_amount: 999, // $9.99
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing`,
+      metadata: {
+        userId,
+      },
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { error: "Checkout failed" },
+      { status: 500 }
+    );
   }
 }

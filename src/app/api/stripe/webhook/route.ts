@@ -1,10 +1,8 @@
-import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,19 +22,21 @@ export async function POST(req: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err) {
-    return new NextResponse("Webhook Error", { status: 400 });
+    return NextResponse.json({ error: "Webhook error" }, { status: 400 });
   }
 
-  // 🎯 WHEN PAYMENT SUCCEEDS
+  // ✅ PAYMENT SUCCESS
   if (event.type === "checkout.session.completed") {
-    const session: any = event.data.object;
+    const session = event.data.object as any;
 
-    const email = session.customer_email;
+    const userId = session.metadata.userId;
 
-    await supabase
-      .from("profiles")
-      .update({ is_premium: true })
-      .eq("email", email);
+    if (userId) {
+      await supabase
+        .from("profiles")
+        .update({ is_premium: true })
+        .eq("id", userId);
+    }
   }
 
   return NextResponse.json({ received: true });
