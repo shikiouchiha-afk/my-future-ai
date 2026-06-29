@@ -2,11 +2,10 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-export const runtime = "nodejs"; // IMPORTANT for Stripe webhooks
+export const runtime = "nodejs";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
-});
+// ✅ FIX: no apiVersion (avoids TypeScript mismatch)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,11 +30,11 @@ export async function POST(req: Request) {
         process.env.STRIPE_WEBHOOK_SECRET!
       );
     } catch (err) {
-      console.log("❌ Webhook signature failed:", err);
+      console.log("Webhook signature error:", err);
       return NextResponse.json({ error: "Webhook error" }, { status: 400 });
     }
 
-    // ✅ PAYMENT SUCCESS
+    // ✅ SUCCESS PAYMENT
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
 
@@ -43,11 +42,9 @@ export async function POST(req: Request) {
       const customerId = session.customer as string;
 
       if (!userId) {
-        console.log("❌ No userId in metadata");
         return NextResponse.json({ error: "Missing userId" }, { status: 400 });
       }
 
-      // 🔥 Unlock premium
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -57,16 +54,16 @@ export async function POST(req: Request) {
         .eq("id", userId);
 
       if (error) {
-        console.log("❌ Supabase update error:", error);
+        console.log("Supabase error:", error);
         return NextResponse.json({ error: "DB update failed" }, { status: 500 });
       }
 
-      console.log("✅ Premium unlocked for:", userId);
+      console.log("Premium unlocked for:", userId);
     }
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.log("❌ Server crash:", err);
+    console.log("Server error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
