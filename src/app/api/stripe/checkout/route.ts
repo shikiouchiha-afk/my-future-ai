@@ -1,17 +1,25 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await req.json();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
-    if (!userId) {
-      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Not logged in" }, { status: 401 });
     }
 
     const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
       payment_method_types: ["card"],
+      mode: "subscription",
       line_items: [
         {
           price_data: {
@@ -31,8 +39,9 @@ export async function POST(req: Request) {
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing`,
 
+      // 🔥 THIS IS WHAT CONNECTS USER TO PAYMENT
       metadata: {
-        userId,
+        userId: user.id,
       },
     });
 
