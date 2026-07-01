@@ -557,7 +557,7 @@ export default function PremiumPage() {
                   placeholder="Ask your coach for a plan, review, or next move..."
                   onKeyDown={(event) => event.key === "Enter" && send()}
                 />
-                <button onClick={send}>Send</button>
+                <button onClick={() => send()}>Send</button>
               </div>
             </div>
           </div>
