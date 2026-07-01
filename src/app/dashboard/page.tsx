@@ -25,6 +25,24 @@ export default function Dashboard() {
   const [xpToday, setXpToday] = useState(0);
   const prevLevel = useRef(1);
 
+  // ✅ ADDED SCROLL REFS
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToBottomSmooth = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+
+    if (distanceFromBottom < 120) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  };
+
   const goToPricing = (event?: React.MouseEvent<HTMLButtonElement>) => {
     event?.preventDefault();
     event?.stopPropagation();
@@ -73,6 +91,11 @@ export default function Dashboard() {
       prevLevel.current = newLevel;
     }
   }, [xp, level]);
+
+  // ✅ ADDED AUTO SCROLL EFFECT
+  useEffect(() => {
+    scrollToBottomSmooth();
+  }, [messages]);
 
   const getPersonality = () => {
     if (level < 10) return "friendly coach";
@@ -141,7 +164,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="messages">
+        {/* ✅ UPDATED HERE */}
+        <div className="messages" ref={messagesContainerRef}>
           {messages.map((m, i) => (
             <div key={`${m.role}-${i}`} className={`msg ${m.role}`}>
               {m.content}
@@ -150,7 +174,12 @@ export default function Dashboard() {
         </div>
 
         <div className="inputRow">
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Message My Future..." onKeyDown={(e) => e.key === "Enter" && sendMessage()} />
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Message My Future..."
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          />
           <button onClick={sendMessage}>Send</button>
         </div>
 
@@ -213,23 +242,6 @@ export default function Dashboard() {
           background: linear-gradient(90deg, #7c3aed, #00b4ff);
           color: white;
           cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 92px;
-          position: relative;
-          z-index: 3;
-        }
-        .upgradeBtn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 8px 20px rgba(0, 180, 255, 0.22);
-        }
-        .premiumBadge {
-          padding: 8px 14px;
-          border-radius: 999px;
-          background: linear-gradient(90deg, #f59e0b, #fbbf24);
-          color: black;
-          font-weight: 800;
         }
         .messages {
           flex: 1;
