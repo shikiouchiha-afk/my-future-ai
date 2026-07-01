@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
   COACHES,
   buildMemorySummary,
+  getCoachOpeningMessage,
   getCoachProfile,
   type CoachMemory,
 } from "@/lib/coachSystem";
@@ -66,6 +67,17 @@ function rewardXP(goal: string | null) {
   return 11;
 }
 
+function generateMission(goal: string | null) {
+  const missions: Record<string, string> = {
+    fitness: "Do 10 pushups right now.",
+    money: "Write 1 way to make money today.",
+    study: "Study focused for 15 minutes.",
+    mindset: "Write 3 goals for your life.",
+  };
+
+  return missions[goal || ""] || "Stay consistent today.";
+}
+
 export default function PremiumPage() {
   const router = useRouter();
 
@@ -83,6 +95,59 @@ export default function PremiumPage() {
   const [completedMissionCount, setCompletedMissionCount] = useState(0);
   const [coachCount, setCoachCount] = useState(7);
   const [theme, setTheme] = useState<AppTheme>("dark");
+  const [activeView, setActiveView] = useState<"home" | "chat" | "history" | "profile">("chat");
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [connectionState, setConnectionState] = useState<"ready" | "reconnecting" | "offline">("ready");
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncLayout = () => setIsMobile(window.innerWidth < 900);
+    syncLayout();
+    window.addEventListener("resize", syncLayout);
+    return () => window.removeEventListener("resize", syncLayout);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const savedDraft = window.localStorage.getItem("premium-chat-draft");
+    if (savedDraft) {
+      setInput(savedDraft);
+      setDraftSaved(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (input.trim()) {
+      window.localStorage.setItem("premium-chat-draft", input);
+      setDraftSaved(true);
+    } else {
+      window.localStorage.removeItem("premium-chat-draft");
+      setDraftSaved(false);
+    }
+  }, [input]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+    }
+  }, [input]);
+
+  useEffect(() => {
+    if (!messagesContainerRef.current) return;
+    const container = messagesContainerRef.current;
+    if (shouldAutoScroll || messages.length <= 1) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
+  }, [messages, isTyping, isStreaming, shouldAutoScroll]);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -145,7 +210,7 @@ export default function PremiumPage() {
   }, [router]);
 
   useEffect(() => {
-    const nextLevel = Math.floor(xp / 120) + 1;
+    const nextLevel = Math.floor(xp / 100) + 1;
     setLevel(nextLevel);
   }, [xp]);
 
@@ -184,7 +249,7 @@ export default function PremiumPage() {
       ? "Study with intention for 20 minutes today."
       : "Define one meaningful action that moves your life forward today.";
 
-    const welcomeMessage = `You are now working with ${coachProfile.title}. ${coachProfile.description} Your first mission is: ${mission}`;
+    const welcomeMessage = `${getCoachOpeningMessage(selectedCoach, selectedGoal)}\n\n🔥 Mission: ${mission}\n🎯 Daily goal: ${generateMission(selectedGoal)}`;
     setMessages([{ role: "assistant", content: welcomeMessage }]);
 
     if (userId) {
@@ -205,60 +270,120 @@ export default function PremiumPage() {
     }
   };
 
-  const send = async () => {
-    if (!input.trim()) return;
+  const send = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
+    if (!text || isTyping || isStreaming) return;
 
-    const text = input;
     setInput("");
-
-    const nextMessages = [...messages, { role: "user" as const, content: text }];
-    setMessages(nextMessages);
+    setPendingPrompt(text);
+    setIsTyping(true);
+    setIsStreaming(true);
+    setConnectionState("ready");
+    setShouldAutoScroll(true);
+    setDraftSaved(false);
 
     const memorySummary = buildMemorySummary(memory);
+    const energeticPrefix = /\b(hype|excited|fire|go|let's go|crazy|winning|strong)\b/i.test(text)
+      ? "You’re bringing strong energy, so I’m matching that pace and pushing for action."
+      : "I’m staying calm, focused, and grounded while helping you move forward.";
 
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: nextMessages.slice(-10),
-        goal,
-        coach,
-        isPremium,
-        memorySummary,
-      }),
-    });
+    setMessages((current) => [...current, { role: "user", content: text }, { role: "assistant", content: "" }]);
 
-    const data = await res.json();
-    setMessages((current) => [...current, { role: "assistant", content: data.reply }]);
-
-    setXp((current) => current + rewardXP(goal));
-    setCompletedMissionCount((current) => current + 1);
-    setStreak((current) => ({ ...current, total_progress: current.total_progress + 1 }));
-
-    if (userId) {
-      const nextMemory: CoachMemory = {
-        goals: [...(memory?.goals || []), text],
-        strengths: memory?.strengths || ["Consistency"],
-        weaknesses: memory?.weaknesses || ["Overwhelm"],
-        milestones: memory?.milestones || [],
-        habits: [...(memory?.habits || []), "Responded to coaching prompt"],
-        achievements: memory?.achievements || [],
-        lastFocus: text,
-        plans: [...(memory?.plans || []), text],
-      };
-      setMemory(nextMemory);
-      await saveCoachMemory(userId, coach || "free", {
-        goals: nextMemory.goals.slice(0, 6),
-        strengths: nextMemory.strengths.slice(0, 3),
-        weaknesses: nextMemory.weaknesses.slice(0, 3),
-        milestones: nextMemory.milestones.slice(0, 3),
-        habits: nextMemory.habits.slice(0, 4),
-        achievements: nextMemory.achievements.slice(0, 4),
-        last_focus: text,
-        plans: nextMemory.plans.slice(0, 6),
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, { role: "user", content: text }].slice(-10),
+          goal,
+          coach,
+          isPremium,
+          memorySummary,
+        }),
       });
-      await updateStreak(userId, [...streak.completed_missions, text]);
+
+      if (!res.ok) throw new Error("Request failed");
+
+      const data = await res.json();
+      const reply = `${energeticPrefix}\n\n${data.reply}`;
+
+      let typed = 0;
+      const interval = window.setInterval(() => {
+        typed += 1;
+        const chunk = reply.slice(0, typed);
+        setMessages((current) => {
+          const updated = [...current];
+          updated[updated.length - 1] = { role: "assistant", content: chunk };
+          return updated;
+        });
+
+        if (typed >= reply.length) {
+          window.clearInterval(interval);
+          setIsTyping(false);
+          setIsStreaming(false);
+          setXp((current) => current + rewardXP(goal));
+          setCompletedMissionCount((current) => current + 1);
+          setStreak((current) => ({ ...current, total_progress: current.total_progress + 1 }));
+
+          if (userId) {
+            const nextMemory: CoachMemory = {
+              goals: [...(memory?.goals || []), text],
+              strengths: memory?.strengths || ["Consistency"],
+              weaknesses: memory?.weaknesses || ["Overwhelm"],
+              milestones: memory?.milestones || [],
+              habits: [...(memory?.habits || []), "Responded to coaching prompt"],
+              achievements: memory?.achievements || [],
+              lastFocus: text,
+              plans: [...(memory?.plans || []), text],
+            };
+            setMemory(nextMemory);
+            void saveCoachMemory(userId, coach || "free", {
+              goals: nextMemory.goals.slice(0, 6),
+              strengths: nextMemory.strengths.slice(0, 3),
+              weaknesses: nextMemory.weaknesses.slice(0, 3),
+              milestones: nextMemory.milestones.slice(0, 3),
+              habits: nextMemory.habits.slice(0, 4),
+              achievements: nextMemory.achievements.slice(0, 4),
+              last_focus: text,
+              plans: nextMemory.plans.slice(0, 6),
+            });
+            void updateStreak(userId, [...streak.completed_missions, text]);
+          }
+        }
+      }, 18);
+    } catch {
+      setMessages((current) => {
+        const updated = [...current];
+        updated[updated.length - 1] = {
+          role: "assistant",
+          content: "I hit a snag connecting. Tap retry or send your message again.",
+        };
+        return updated;
+      });
+      setIsTyping(false);
+      setIsStreaming(false);
+      setConnectionState("reconnecting");
     }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void send();
+    }
+  };
+
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+    const container = messagesContainerRef.current;
+    const distanceFromBottom = container.scrollHeight - (container.scrollTop + container.clientHeight);
+    setShouldAutoScroll(distanceFromBottom < 140);
+  };
+
+  const handleRetry = () => {
+    if (!pendingPrompt) return;
+    setConnectionState("ready");
+    void send(pendingPrompt);
   };
 
   const activeCoach = coach ? getCoachProfile(coach) : null;
@@ -338,39 +463,30 @@ export default function PremiumPage() {
   }
 
   return (
-    <div className="page" style={{ background: `linear-gradient(135deg, ${activeTheme.shell}, #140c2d 55%, #0f172a 100%)` }}>
+    <div className="page" style={{ background: `radial-gradient(circle at top, ${activeTheme.glow}, transparent 30%), linear-gradient(135deg, ${activeTheme.shell}, #04030b 55%, #020617 100%)` }}>
+      <div className="stars" />
+      <div className="nebula" />
       <div className="shell">
         <aside className="sidebar">
           <div className="brand">My Future Premium</div>
-          <div className="statCard">
-            <div className="label">Current level</div>
-            <div className="value">{level}</div>
-          </div>
-          <div className="statCard">
-            <div className="label">XP</div>
-            <div className="value">{xp}</div>
-          </div>
-          <div className="statCard">
-            <div className="label">Streak</div>
-            <div className="value">{streak.current_streak} days</div>
-          </div>
-          <div className="statCard">
-            <div className="label">Completed missions</div>
-            <div className="value">{completedMissionCount}</div>
+          <div className="miniStatsRow">
+            <div className="statPill">Lvl {level}</div>
+            <div className="statPill">XP {xp}</div>
+            <div className="statPill">🔥 {streak.current_streak}</div>
           </div>
 
-          <div className="panel">
+          <div className="panel compactPanel">
             <h3>Coach focus</h3>
             <p>{activeCoach?.title || "General coach"}</p>
             <p className="small">{activeCoach?.personality || "Warm and strategic"}</p>
           </div>
 
-          <div className="panel">
+          <div className="panel compactPanel">
             <h3>Daily mission</h3>
             <p>{dailyMissions[completedMissionCount % dailyMissions.length]}</p>
           </div>
 
-          <div className="panel">
+          <div className="panel compactPanel">
             <h3>Weekly challenge</h3>
             <p>{weeklyChallenges[level % weeklyChallenges.length]}</p>
           </div>
@@ -380,7 +496,7 @@ export default function PremiumPage() {
           <div className="topBar">
             <div>
               <div className="title">Premium coaching command center</div>
-              <div className="subtitle">Deep reasoning, structured coaching, and progress that remembers your journey.</div>
+              <div className="subtitle">A calmer, wider space for deep conversations and clear next steps.</div>
             </div>
             <div className="toolbar">
               <select
@@ -400,20 +516,6 @@ export default function PremiumPage() {
             </div>
           </div>
 
-          <div className="heroStrip">
-            <div>
-              <div className="badge">Live analytics</div>
-              <h2>{activeCoach?.title || "General coach"}</h2>
-              <p>{activeCoach?.description || "Your premium coach will guide you with structured clarity and clear accountability."}</p>
-            </div>
-            <div className="metricsGrid">
-              <div className="metricCard"><span>Productivity</span><strong>{Math.min(100, 60 + level * 3)}%</strong></div>
-              <div className="metricCard"><span>Wellness</span><strong>{Math.min(100, 70 + level)}%</strong></div>
-              <div className="metricCard"><span>Learning</span><strong>{Math.min(100, 50 + level * 2)}%</strong></div>
-              <div className="metricCard"><span>Business</span><strong>{Math.min(100, 55 + level * 2)}%</strong></div>
-            </div>
-          </div>
-
           <div className="coachGrid">
             {COACHES.slice(0, coachCount).map((coachOption) => (
               <button
@@ -426,23 +528,37 @@ export default function PremiumPage() {
             ))}
           </div>
 
-          <div className="chatCard">
-            <div className="messages">
-              {messages.map((message, index) => (
-                <div key={`${message.role}-${index}`} className={`bubble ${message.role}`}>
-                  {message.content}
+          <div className="conversationShell">
+            <div className="chatCard">
+              <div className="chatHeader">
+                <div>
+                  <div className="chatTitle">{activeCoach?.title || "General coach"}</div>
+                  <div className="chatSubtitle">{activeCoach?.description || "Focused guidance, clear accountability, and thoughtful momentum."}</div>
                 </div>
-              ))}
-            </div>
+                <div className="miniStats">
+                  <span>Lvl {level}</span>
+                  <span>XP {xp}</span>
+                  <span>🔥 {streak.current_streak}</span>
+                </div>
+              </div>
 
-            <div className="composer">
-              <input
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder="Ask your coach for a plan, review, or next move..."
-                onKeyDown={(event) => event.key === "Enter" && send()}
-              />
-              <button onClick={send}>Send</button>
+              <div className="messages">
+                {messages.map((message, index) => (
+                  <div key={`${message.role}-${index}`} className={`bubble ${message.role}`}>
+                    {message.content}
+                  </div>
+                ))}
+              </div>
+
+              <div className="composer">
+                <input
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  placeholder="Ask your coach for a plan, review, or next move..."
+                  onKeyDown={(event) => event.key === "Enter" && send()}
+                />
+                <button onClick={send}>Send</button>
+              </div>
             </div>
           </div>
 
@@ -452,12 +568,12 @@ export default function PremiumPage() {
               <p>{memorySummary}</p>
             </div>
             <div className="panel">
-              <h3>Monthly goals</h3>
-              <p>{monthlyGoals[level % monthlyGoals.length]}</p>
-            </div>
-            <div className="panel">
               <h3>Daily rewards</h3>
               <p>{rewards[completedMissionCount % rewards.length]}</p>
+            </div>
+            <div className="panel">
+              <h3>Monthly goals</h3>
+              <p>{monthlyGoals[level % monthlyGoals.length]}</p>
             </div>
           </div>
         </main>
@@ -465,35 +581,82 @@ export default function PremiumPage() {
 
       <style jsx>{`
         .page {
+          position: relative;
           min-height: 100vh;
           padding: 24px;
+          overflow: hidden;
           background: linear-gradient(135deg, #04030b, #140c2d 55%, #0f172a 100%);
           color: white;
         }
-        .shell {
-          display: grid;
-          grid-template-columns: 280px 1fr;
-          gap: 18px;
-          max-width: 1400px;
-          margin: 0 auto;
+        .stars, .nebula {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
         }
-        .sidebar, .mainPanel {
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.12);
+        .stars {
+          background-image: radial-gradient(rgba(255,255,255,0.85) 1px, transparent 1px);
+          background-size: 34px 34px;
+          opacity: 0.14;
+          animation: drift 12s linear infinite;
+        }
+        .nebula {
+          background: radial-gradient(circle at 20% 20%, rgba(34,211,238,0.22), transparent 28%), radial-gradient(circle at 80% 15%, rgba(139,92,246,0.24), transparent 30%), radial-gradient(circle at 70% 80%, rgba(244,114,182,0.16), transparent 24%);
+          mix-blend-mode: screen;
+          animation: pulse 8s ease-in-out infinite;
+        }
+        .shell {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+          gap: 18px;
+          max-width: 1480px;
+          margin: 0 auto;
+          align-items: start;
+        }
+        .sidebar {
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 18px;
+          padding: 12px;
+          backdrop-filter: blur(18px);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .mainPanel {
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
           border-radius: 24px;
           padding: 18px;
           backdrop-filter: blur(24px);
+          min-width: 0;
         }
         .brand {
-          font-size: 1.12rem;
+          font-size: 1.05rem;
           font-weight: 700;
-          margin-bottom: 14px;
+          margin-bottom: 4px;
         }
-        .statCard, .panel {
-          padding: 12px;
-          border-radius: 16px;
+        .miniStatsRow {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
+        .statPill {
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.08);
+          font-size: 0.8rem;
+        }
+        .panel {
+          padding: 10px;
+          border-radius: 14px;
           background: rgba(255,255,255,0.05);
-          margin-bottom: 10px;
+        }
+        .compactPanel p {
+          font-size: 0.9rem;
+          margin-top: 4px;
         }
         .label { font-size: 0.84rem; color: #cbd5e1; }
         .value { font-size: 1.14rem; font-weight: 700; margin-top: 4px; }
@@ -506,7 +669,7 @@ export default function PremiumPage() {
           margin-bottom: 14px;
         }
         .title { font-size: 1.16rem; font-weight: 700; }
-        .subtitle { margin-top: 4px; color: #cbd5e1; }
+        .subtitle { margin-top: 4px; color: #cbd5e1; font-size: 0.95rem; }
         .toolbar { display: flex; gap: 8px; align-items: center; }
         .backBtn {
           border: 0;
@@ -572,44 +735,84 @@ export default function PremiumPage() {
         .coachChip.active {
           background: linear-gradient(90deg, #7c3aed, #22d3ee);
         }
+        .conversationShell {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+        }
         .chatCard {
-          padding: 14px;
-          border-radius: 18px;
+          width: min(100%, 900px);
+          padding: 16px;
+          border-radius: 22px;
           background: rgba(255,255,255,0.05);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+          min-height: 620px;
+          display: flex;
+          flex-direction: column;
+        }
+        .chatHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 14px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .chatTitle { font-size: 1rem; font-weight: 700; }
+        .chatSubtitle { margin-top: 4px; color: #cbd5e1; font-size: 0.92rem; }
+        .miniStats {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          color: #e2e8f0;
+          font-size: 0.85rem;
         }
         .messages {
           display: flex;
           flex-direction: column;
-          gap: 10px;
-          max-height: 420px;
+          gap: 12px;
+          flex: 1;
           overflow-y: auto;
-          padding-right: 4px;
-          margin-bottom: 12px;
+          padding: 4px 4px 8px;
+          margin-bottom: 14px;
         }
         .bubble {
-          max-width: 82%;
+          max-width: 78%;
           padding: 12px 14px;
-          border-radius: 14px;
-          line-height: 1.6;
+          border-radius: 16px;
+          line-height: 1.65;
           white-space: pre-wrap;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+          font-size: 0.97rem;
         }
-        .bubble.user { align-self: flex-end; background: rgba(34,211,238,0.18); }
-        .bubble.assistant { background: rgba(255,255,255,0.08); }
-        .composer { display: flex; gap: 10px; }
+        .bubble.user { align-self: flex-end; background: linear-gradient(135deg, rgba(34,211,238,0.24), rgba(14,165,233,0.2)); }
+        .bubble.assistant { background: rgba(255,255,255,0.09); }
+        .composer { display: flex; gap: 10px; align-items: center; }
         input { flex: 1; border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; background: rgba(255,255,255,0.08); color: white; padding: 12px 16px; }
+        input::placeholder { color: #cbd5e1; }
         button { border: 0; border-radius: 999px; padding: 12px 16px; background: linear-gradient(90deg, #7c3aed, #22d3ee); color: white; cursor: pointer; }
-        .insightGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+        .insightGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
         .status { color: white; padding: 40px; }
-        @media (max-width: 980px) {
+        @keyframes drift {
+          from { transform: translateY(0); }
+          to { transform: translateY(-34px); }
+        }
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.03); opacity: 1; }
+        }
+        @media (max-width: 1200px) {
           .shell { grid-template-columns: 1fr; }
         }
         @media (max-width: 720px) {
-          .heroStrip, .topBar, .composer, .insightGrid {
+          .heroStrip, .topBar, .chatHeader, .composer, .insightGrid {
             flex-direction: column;
             align-items: flex-start;
           }
           .metricsGrid { min-width: 0; width: 100%; }
           .bubble { max-width: 100%; }
+          .chatCard { min-height: 540px; }
         }
       `}</style>
     </div>

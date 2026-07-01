@@ -25,7 +25,15 @@ export default function Dashboard() {
   const [xpToday, setXpToday] = useState(0);
   const prevLevel = useRef(1);
 
-  const goToPricing = () => {
+  const goToPricing = (event?: React.MouseEvent<HTMLButtonElement>) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    if (typeof window !== "undefined") {
+      window.location.assign("/pricing");
+      return;
+    }
+
     router.push("/pricing");
   };
 
@@ -126,7 +134,9 @@ export default function Dashboard() {
             {plan === "premium" ? (
               <div className="premiumBadge">👑 Premium</div>
             ) : (
-              <button type="button" className="upgradeBtn" onClick={goToPricing}>🚀 Upgrade</button>
+              <button type="button" className="upgradeBtn" onClick={goToPricing}>
+                Upgrade
+              </button>
             )}
           </div>
         </div>
@@ -197,12 +207,22 @@ export default function Dashboard() {
         }
         .upgradeBtn {
           padding: 8px 14px;
-          border: none;
+          border: 1px solid rgba(255,255,255,0.2);
           border-radius: 999px;
           font-weight: 700;
           background: linear-gradient(90deg, #7c3aed, #00b4ff);
           color: white;
           cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 92px;
+          position: relative;
+          z-index: 3;
+        }
+        .upgradeBtn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 20px rgba(0, 180, 255, 0.22);
         }
         .premiumBadge {
           padding: 8px 14px;

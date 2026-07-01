@@ -26,44 +26,60 @@ export async function loadCoachMemory(userId: string, coach: string) {
 }
 
 export async function saveCoachMemory(userId: string, coach: string, memory: Partial<CoachMemoryRecord>) {
-  const { error } = await supabase.from("coach_memories").upsert(
-    {
-      user_id: userId,
-      coach,
-      ...memory,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,coach" }
-  );
+  try {
+    const { error } = await supabase.from("coach_memories").upsert(
+      {
+        user_id: userId,
+        coach,
+        ...memory,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,coach" }
+    );
 
-  if (error) {
-    console.error("Could not save coach memory", error);
+    if (error) {
+      console.warn("Could not save coach memory", error.message);
+    }
+  } catch (err) {
+    console.warn("Coach memory save skipped", err);
   }
 }
 
 export async function loadOrCreateStreak(userId: string) {
-  const { data } = await supabase
+  const { data, error: selectError } = await supabase
     .from("user_progress")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (data) return data;
-
-  const { error } = await supabase.from("user_progress").insert({
-    user_id: userId,
-    current_streak: 0,
-    longest_streak: 0,
-    last_active_date: null,
-    completed_missions: [],
-    total_progress: 0,
-  });
-
-  if (error) {
-    console.error("Could not initialize progress", error);
+  if (selectError) {
+    console.warn("Could not read progress", selectError.message);
   }
 
-  return null;
+  if (data) return data;
+
+  const { data: createdData, error: insertError } = await supabase
+    .from("user_progress")
+    .upsert(
+      {
+        user_id: userId,
+        current_streak: 0,
+        longest_streak: 0,
+        last_active_date: null,
+        completed_missions: [],
+        total_progress: 0,
+      },
+      { onConflict: "user_id" }
+    )
+    .select("*")
+    .maybeSingle();
+
+  if (insertError) {
+    console.warn("Progress initialization unavailable", insertError.message);
+    return null;
+  }
+
+  return createdData ?? null;
 }
 
 export async function updateStreak(userId: string, completedMissions: string[] = []) {

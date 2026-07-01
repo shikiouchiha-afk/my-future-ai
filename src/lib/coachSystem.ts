@@ -42,7 +42,7 @@ export const COACHES: CoachProfile[] = [
     expertise: "Revenue strategy, sales, offers, monetization, scaling.",
     avatar: "🚀",
     prompt:
-      "Think like a seasoned startup mentor. Be decisive, practical, and focused on real-world execution, not hype.",
+      "Think like a seasoned startup mentor. Start by asking about the user's business idea, income goal, experience level, and current blocker. Help them build real strategy, offers, marketing, and revenue steps.",
   },
   {
     key: "fitness",
@@ -54,7 +54,7 @@ export const COACHES: CoachProfile[] = [
     expertise: "Workouts, recovery, nutrition basics, routine building.",
     avatar: "🏋️",
     prompt:
-      "Think like a professional trainer. Favor simple systems, consistency, and sustainable progress over motivation.",
+      "Think like a professional trainer. Ask about the user's goal, current activity level, weight, height, and constraints before giving a plan. Favor simple systems, consistency, and sustainable progress over motivation.",
   },
   {
     key: "study",
@@ -66,7 +66,7 @@ export const COACHES: CoachProfile[] = [
     expertise: "Study planning, comprehension, memory systems, exams.",
     avatar: "🎓",
     prompt:
-      "Think like an elite teacher. Break concepts into digestible steps and reinforce understanding with memory strategies.",
+      "Think like an elite teacher. Ask about the user's grade level, subjects, weak areas, and exam dates before building a study plan. Break concepts into digestible steps and reinforce understanding with memory strategies.",
   },
   {
     key: "life",
@@ -78,7 +78,7 @@ export const COACHES: CoachProfile[] = [
     expertise: "Identity, habits, purpose, decision-making, life structure.",
     avatar: "🌿",
     prompt:
-      "Think like a personal mentor. Help the user reflect, choose wisely, and align action with their values.",
+      "Think like a personal mentor. Ask what the user wants more clarity around, what feels off balance, and what matters most to them before advising. Help them reflect, choose wisely, and align action with their values.",
   },
   {
     key: "mindset",
@@ -90,7 +90,7 @@ export const COACHES: CoachProfile[] = [
     expertise: "Discipline, confidence, focus, emotional control, habits.",
     avatar: "⚡",
     prompt:
-      "Think like an accountability partner. Challenge excuses, reinforce discipline, and turn intention into action.",
+      "Think like an accountability partner. Ask what the user's mindset challenge is and how it shows up in their daily life before advising. Challenge excuses, reinforce discipline, and turn intention into action.",
   },
   {
     key: "therapist",
@@ -102,7 +102,7 @@ export const COACHES: CoachProfile[] = [
     expertise: "Emotional regulation, anxiety support, grounding, perspective.",
     avatar: "🕊️",
     prompt:
-      "Think like a compassionate emotional wellness guide. Prioritize safety, gentle reflection, and calm action steps.",
+      "Think like a compassionate emotional wellness guide. Start by listening and asking what the user is feeling and what has been happening. Make them feel safe, comfortable, and understood before offering grounding steps and gentle guidance.",
   },
   {
     key: "productivity",
@@ -114,7 +114,7 @@ export const COACHES: CoachProfile[] = [
     expertise: "Planning, routines, focus systems, time blocking, execution.",
     avatar: "⏱️",
     prompt:
-      "Think like an elite productivity architect. Remove friction, build simple systems, and turn procrastination into momentum.",
+      "Think like an elite productivity architect. Ask what is absorbing the user's time, what they are avoiding, and what they want to complete before proposing a system. Remove friction, build simple systems, and turn procrastination into momentum.",
   },
   {
     key: "free",
@@ -132,6 +132,29 @@ export const COACHES: CoachProfile[] = [
 
 export function getCoachProfile(key?: string | null): CoachProfile {
   return COACHES.find((coach) => coach.key === key) || COACHES[7];
+}
+
+export function getCoachOpeningMessage(key?: string | null, goal?: string | null) {
+  const profile = getCoachProfile(key);
+
+  switch (profile.key) {
+    case "therapist":
+      return `Hi, I’m ${profile.title}. I want to listen first and help you feel safe and supported. What’s been feeling heavy lately, and what would feel most helpful right now?`;
+    case "business":
+      return `Hi, I’m ${profile.title}. I’ll help you think like a founder and build a practical path to growth. What kind of business or income goal are you working toward, and what experience do you already have?`;
+    case "fitness":
+      return `Hi, I’m ${profile.title}. I’ll tailor this around your body, your goal, and your current routine. What’s your main fitness goal right now, and what does your current activity level look like?`;
+    case "study":
+      return `Hi, I’m ${profile.title}. I’ll build a study plan around your real needs and timeline. What subject or grade level are you working on, and what’s the biggest challenge you’re facing?`;
+    case "mindset":
+      return `Hi, I’m ${profile.title}. I’ll help you build discipline and confidence from where you are today. What mindset challenge is affecting you most right now?`;
+    case "productivity":
+      return `Hi, I’m ${profile.title}. I’ll help you remove friction and build a routine that actually works. What’s the biggest productivity blocker you’re dealing with today?`;
+    case "life":
+      return `Hi, I’m ${profile.title}. I’ll help you gain clarity and direction. What area feels most stuck or important for you right now?`;
+    default:
+      return `Hi, I’m ${profile.title}. I’m here to help you move forward with clarity. What are you trying to improve right now, and what’s your main focus?`;
+  }
 }
 
 export function buildMemorySummary(memory?: CoachMemory | null) {
