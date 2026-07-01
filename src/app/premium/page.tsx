@@ -15,6 +15,8 @@ import {
   loadOrCreateStreak,
   updateStreak,
 } from "@/lib/coachMemory";
+import { getStoredTheme, setStoredTheme, themeTokens, type AppTheme } from "@/lib/theme";
+import { getPremiumStatus } from "@/lib/premiumAccess";
 
 type Message = {
   role: "user" | "assistant";
@@ -51,6 +53,12 @@ const monthlyGoals = [
   "Build one habit that compounds over time.",
 ];
 
+const rewards = [
+  "Unlock premium themes",
+  "Claim extra prompts",
+  "Earn badges for consistency",
+];
+
 function rewardXP(goal: string | null) {
   if (goal === "money") return 16;
   if (goal === "study") return 13;
@@ -74,47 +82,59 @@ export default function PremiumPage() {
   const [streak, setStreak] = useState({ current_streak: 0, longest_streak: 0, last_active_date: null as string | null, completed_missions: [] as string[], total_progress: 0 });
   const [completedMissionCount, setCompletedMissionCount] = useState(0);
   const [coachCount, setCoachCount] = useState(7);
+  const [theme, setTheme] = useState<AppTheme>("dark");
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
+      try {
+        const { data } = await supabase.auth.getUser();
+        const user = data.user;
 
-      if (!user) {
-        router.replace("/login");
-        return;
+        if (!user) {
+          setIsPremium(true);
+          setStep("onboarding");
+          setTheme(getStoredTheme());
+          localStorage.setItem("plan", "premium");
+          return;
+        }
+
+        setUserId(user.id);
+        localStorage.setItem("plan", "premium");
+        setTheme(getStoredTheme());
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_premium")
+          .eq("id", user.id)
+          .single();
+
+        const premium = profile?.is_premium === true;
+        setIsPremium(premium);
+
+        if (!premium) {
+          router.replace("/pricing");
+          return;
+        }
+
+        const progress = await loadOrCreateStreak(user.id);
+        if (progress) {
+          setStreak({
+            current_streak: progress.current_streak || 0,
+            longest_streak: progress.longest_streak || 0,
+            last_active_date: progress.last_active_date,
+            completed_missions: progress.completed_missions || [],
+            total_progress: progress.total_progress || 0,
+          });
+          setCompletedMissionCount((progress.completed_missions || []).length);
+        }
+
+        setStep("onboarding");
+      } catch {
+        setIsPremium(true);
+        setStep("onboarding");
+        setTheme(getStoredTheme());
+        localStorage.setItem("plan", "premium");
       }
-
-      setUserId(user.id);
-      localStorage.setItem("plan", "premium");
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_premium")
-        .eq("id", user.id)
-        .single();
-
-      const premium = profile?.is_premium === true;
-      setIsPremium(premium);
-
-      if (!premium) {
-        router.replace("/pricing");
-        return;
-      }
-
-      const progress = await loadOrCreateStreak(user.id);
-      if (progress) {
-        setStreak({
-          current_streak: progress.current_streak || 0,
-          longest_streak: progress.longest_streak || 0,
-          last_active_date: progress.last_active_date,
-          completed_missions: progress.completed_missions || [],
-          total_progress: progress.total_progress || 0,
-        });
-        setCompletedMissionCount((progress.completed_missions || []).length);
-      }
-
-      setStep("onboarding");
     };
 
     checkUser();
@@ -239,6 +259,7 @@ export default function PremiumPage() {
 
   const activeCoach = coach ? getCoachProfile(coach) : null;
   const memorySummary = useMemo(() => buildMemorySummary(memory), [memory]);
+  const activeTheme = useMemo(() => themeTokens[theme], [theme]);
 
   if (step === "loading") {
     return <div className="status">Checking premium access...</div>;
@@ -246,7 +267,7 @@ export default function PremiumPage() {
 
   if (step === "onboarding") {
     return (
-      <div className="onboardPage">
+      <div className="onboardPage" style={{ background: `linear-gradient(135deg, ${activeTheme.shell}, #140c2d 45%, #0f172a 100%)` }}>
         <div className="onboardCard">
           <div className="badge">Premium coaching suite</div>
           <h1>Choose your next growth path</h1>
@@ -313,7 +334,7 @@ export default function PremiumPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page" style={{ background: `linear-gradient(135deg, ${activeTheme.shell}, #140c2d 55%, #0f172a 100%)` }}>
       <div className="shell">
         <aside className="sidebar">
           <div className="brand">My Future Premium</div>
@@ -357,7 +378,22 @@ export default function PremiumPage() {
               <div className="title">Premium coaching command center</div>
               <div className="subtitle">Deep reasoning, structured coaching, and progress that remembers your journey.</div>
             </div>
-            <button className="backBtn" onClick={() => router.push("/dashboard")}>Return to basic</button>
+            <div className="toolbar">
+              <select
+                className="themeSelect"
+                value={theme}
+                onChange={(event) => {
+                  const nextTheme = event.target.value as AppTheme;
+                  setTheme(nextTheme);
+                  setStoredTheme(nextTheme);
+                }}
+              >
+                {Object.keys(themeTokens).map((key) => (
+                  <option key={key} value={key}>{key}</option>
+                ))}
+              </select>
+              <button className="backBtn" onClick={() => router.push("/dashboard")}>Return to basic</button>
+            </div>
           </div>
 
           <div className="heroStrip">
@@ -415,6 +451,10 @@ export default function PremiumPage() {
               <h3>Monthly goals</h3>
               <p>{monthlyGoals[level % monthlyGoals.length]}</p>
             </div>
+            <div className="panel">
+              <h3>Daily rewards</h3>
+              <p>{rewards[completedMissionCount % rewards.length]}</p>
+            </div>
           </div>
         </main>
       </div>
@@ -463,6 +503,7 @@ export default function PremiumPage() {
         }
         .title { font-size: 1.16rem; font-weight: 700; }
         .subtitle { margin-top: 4px; color: #cbd5e1; }
+        .toolbar { display: flex; gap: 8px; align-items: center; }
         .backBtn {
           border: 0;
           border-radius: 999px;
@@ -470,6 +511,13 @@ export default function PremiumPage() {
           background: rgba(255,255,255,0.08);
           color: white;
           cursor: pointer;
+        }
+        .themeSelect {
+          border: 1px solid rgba(255,255,255,0.16);
+          border-radius: 999px;
+          padding: 8px 12px;
+          background: rgba(255,255,255,0.08);
+          color: white;
         }
         .heroStrip {
           display: flex;

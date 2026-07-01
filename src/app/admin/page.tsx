@@ -17,39 +17,46 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserProfile[]>([]);
 
-  /* =========================
-     CHECK ADMIN ACCESS
-  ========================= */
+  // =========================
+  // CHECK ADMIN ACCESS
+  // =========================
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
+      try {
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user;
 
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
+        // 🚨 No user = redirect
+        if (!user?.id) {
+          router.replace("/login");
+          return;
+        }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", user.id)
-        .single();
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", user.id)
+          .single();
 
-      if (!profile?.is_admin) {
+        // 🚨 Not admin = redirect
+        if (error || !profile?.is_admin) {
+          router.replace("/");
+          return;
+        }
+
+        loadUsers();
+      } catch (err) {
+        console.error("Admin check failed:", err);
         router.replace("/");
-        return;
       }
-
-      loadUsers();
     };
 
     checkAdmin();
   }, []);
 
-  /* =========================
-     LOAD USERS
-  ========================= */
+  // =========================
+  // LOAD USERS
+  // =========================
   const loadUsers = async () => {
     const { data, error } = await supabase
       .from("profiles")
@@ -62,9 +69,9 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  /* =========================
-     TOGGLE PREMIUM
-  ========================= */
+  // =========================
+  // TOGGLE PREMIUM
+  // =========================
   const togglePremium = async (id: string, value: boolean) => {
     await supabase
       .from("profiles")
@@ -74,6 +81,9 @@ export default function AdminPage() {
     loadUsers();
   };
 
+  // =========================
+  // LOADING SCREEN
+  // =========================
   if (loading) {
     return (
       <div style={{ color: "white", padding: 20 }}>
@@ -98,9 +108,7 @@ export default function AdminPage() {
 
             <button
               style={styles.button}
-              onClick={() =>
-                togglePremium(u.id, !u.is_premium)
-              }
+              onClick={() => togglePremium(u.id, !u.is_premium)}
             >
               Toggle Premium
             </button>
@@ -111,6 +119,9 @@ export default function AdminPage() {
   );
 }
 
+// =========================
+// STYLES
+// =========================
 const styles = {
   page: {
     padding: 30,

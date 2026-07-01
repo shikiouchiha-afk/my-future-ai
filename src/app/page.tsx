@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 const features = [
@@ -36,6 +37,11 @@ const testimonials = [
 
 export default function HomePage() {
   const router = useRouter();
+  const featureRows = useMemo(() => [
+    ["Daily AI challenges", "Streak system", "Daily rewards"],
+    ["Weekly goals", "Progress tracking", "Premium themes"],
+  ], [
+  ]);
 
   return (
     <div className="page">
@@ -43,14 +49,16 @@ export default function HomePage() {
       <div className="neuralGrid" />
       <div className="brainGlow" />
       <div className="particleField" />
+      <div className="mistLayer" />
+      <div className="scanLine" />
 
       <main className="container">
         <section className="hero">
           <div className="heroContent">
-            <div className="badge">✨ Premium AI Coaching Platform</div>
+            <div className="badge">❄ Cold Signal • AI Coaching Platform</div>
             <h1>My Future</h1>
             <p className="subtitle">
-              A premium AI platform that helps you build momentum in business, fitness, learning, wellness, and life with world-class coaching that remembers your progress.
+              A darker, colder AI coaching system for discipline, focus, and ruthless progress in business, fitness, learning, and life.
             </p>
             <div className="buttons">
               <button className="primary" onClick={() => router.push("/signup")}>
@@ -69,11 +77,16 @@ export default function HomePage() {
 
           <div className="heroVisual" aria-hidden="true">
             <div className="brainShell">
+              <div className="orbit orbit1" />
+              <div className="orbit orbit2" />
+              <div className="orbit orbit3" />
               <div className="brainCore" />
               <div className="neuralNode node1" />
               <div className="neuralNode node2" />
               <div className="neuralNode node3" />
               <div className="neuralNode node4" />
+              <div className="neuralNode node5" />
+              <div className="neuralNode node6" />
             </div>
           </div>
         </section>
@@ -111,6 +124,16 @@ export default function HomePage() {
           ))}
         </section>
 
+        <section className="featureRows">
+          {featureRows.map((row, index) => (
+            <div key={index} className="featureRow">
+              {row.map((item) => (
+                <div key={item} className="chip">{item}</div>
+              ))}
+            </div>
+          ))}
+        </section>
+
         <section className="coachSection">
           <div className="sectionHeading">
             <p className="eyebrow">Coach previews</p>
@@ -144,6 +167,27 @@ export default function HomePage() {
             Explore premium
           </button>
         </section>
+
+        <section className="helpCenter">
+          <div className="sectionHeading">
+            <p className="eyebrow">Help Center</p>
+            <h2>Support, answers, and fast help whenever you need it.</h2>
+          </div>
+          <div className="helpGrid">
+            <article className="card">
+              <h3>Support</h3>
+              <p>Get help with setup, billing, onboarding, and premium access.</p>
+            </article>
+            <article className="card">
+              <h3>FAQ</h3>
+              <p>Learn how premium coaches, memory, and streaks work in the app.</p>
+            </article>
+            <article className="card">
+              <h3>Contact</h3>
+              <p>Reach the team anytime for product questions or feedback.</p>
+            </article>
+          </div>
+        </section>
       </main>
 
       <style jsx>{`
@@ -153,48 +197,59 @@ export default function HomePage() {
           overflow: hidden;
           padding: 28px;
           background:
-            radial-gradient(circle at top left, rgba(168, 85, 247, 0.26), transparent 29%),
-            radial-gradient(circle at bottom right, rgba(34, 211, 238, 0.22), transparent 26%),
-            linear-gradient(135deg, #04030b 0%, #090611 45%, #090815 100%);
+            radial-gradient(circle at top left, rgba(30, 41, 59, 0.65), transparent 36%),
+            radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.18), transparent 24%),
+            linear-gradient(135deg, #02050b 0%, #050816 45%, #0b1020 100%);
           color: white;
         }
 
-        .orbitalGlow, .neuralGrid, .brainGlow, .particleField {
+        .orbitalGlow, .neuralGrid, .brainGlow, .particleField, .mistLayer, .scanLine {
           position: absolute;
           inset: 0;
           pointer-events: none;
         }
 
         .orbitalGlow {
-          background: radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.25), transparent 36%);
-          filter: blur(40px);
+          background: radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.22), transparent 34%);
+          filter: blur(48px);
         }
 
         .neuralGrid {
           background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
           background-size: 120px 120px;
-          mask-image: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-          animation: drift 18s linear infinite;
-          opacity: 0.25;
+          mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+          animation: drift 16s linear infinite;
+          opacity: 0.16;
         }
 
         .brainGlow {
           top: -8%;
           left: 50%;
-          width: 700px;
-          height: 700px;
+          width: 760px;
+          height: 760px;
           transform: translateX(-50%);
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(168, 85, 247, 0.7) 0%, rgba(99, 102, 241, 0.28) 36%, transparent 68%);
-          filter: blur(80px);
+          background: radial-gradient(circle, rgba(15, 23, 42, 0.92) 0%, rgba(30, 64, 175, 0.3) 34%, rgba(8, 145, 178, 0.16) 58%, transparent 72%);
+          filter: blur(90px);
           animation: pulse 4.5s ease-in-out infinite;
         }
 
         .particleField {
           background-image: radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px);
           background-size: 120px 120px;
-          opacity: 0.18;
+          opacity: 0.12;
           animation: drift 11s linear infinite reverse;
+        }
+
+        .mistLayer {
+          background: radial-gradient(circle at 50% 0%, rgba(148, 163, 184, 0.1), transparent 32%);
+          animation: float 8s ease-in-out infinite alternate;
+        }
+
+        .scanLine {
+          background: linear-gradient(180deg, transparent, rgba(255,255,255,0.04), transparent);
+          mix-blend-mode: screen;
+          animation: sweep 7s linear infinite;
         }
 
         .container {
@@ -213,11 +268,12 @@ export default function HomePage() {
           gap: 32px;
           align-items: center;
           padding: 34px;
-          border: 1px solid rgba(255,255,255,0.12);
+          border: 1px solid rgba(148, 163, 184, 0.18);
           border-radius: 28px;
-          background: rgba(255, 255, 255, 0.06);
-          box-shadow: 0 32px 80px rgba(5, 8, 20, 0.5);
+          background: rgba(5, 10, 20, 0.82);
+          box-shadow: 0 24px 84px rgba(0, 0, 0, 0.7), inset 0 0 30px rgba(14, 165, 233, 0.08);
           backdrop-filter: blur(24px);
+          animation: fadeUp 0.7s ease both;
         }
 
         .badge, .eyebrow {
@@ -226,8 +282,8 @@ export default function HomePage() {
           gap: 8px;
           padding: 8px 12px;
           border-radius: 999px;
-          background: rgba(255,255,255,0.08);
-          color: #d8b4fe;
+          background: rgba(15, 23, 42, 0.86);
+          color: #7dd3fc;
           font-size: 0.82rem;
           letter-spacing: 0.16em;
           text-transform: uppercase;
@@ -243,7 +299,7 @@ export default function HomePage() {
           line-height: 0.95;
           margin-bottom: 12px;
           font-weight: 800;
-          background: linear-gradient(90deg, #f5d0fe 0%, #a78bfa 40%, #2dd4bf 100%);
+          background: linear-gradient(90deg, #f8fafc 0%, #7dd3fc 40%, #1d4ed8 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -251,7 +307,7 @@ export default function HomePage() {
         .subtitle {
           font-size: 1.04rem;
           line-height: 1.7;
-          color: #d1d5db;
+          color: #cbd5e1;
           max-width: 680px;
         }
 
@@ -273,14 +329,14 @@ export default function HomePage() {
 
         .primary {
           color: white;
-          background: linear-gradient(90deg, #8b5cf6, #2dd4bf);
-          box-shadow: 0 16px 30px rgba(109, 40, 217, 0.35);
+          background: linear-gradient(90deg, #0f172a, #2563eb);
+          box-shadow: 0 16px 30px rgba(15, 23, 42, 0.45);
         }
 
         .secondary {
           color: white;
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.16);
+          background: rgba(15, 23, 42, 0.85);
+          border: 1px solid rgba(148, 163, 184, 0.18);
         }
 
         .primary:hover, .secondary:hover {
@@ -292,7 +348,7 @@ export default function HomePage() {
           flex-wrap: wrap;
           gap: 10px;
           margin-top: 16px;
-          color: #c4b5fd;
+          color: #94a3b8;
           font-size: 0.92rem;
         }
 
@@ -303,21 +359,33 @@ export default function HomePage() {
 
         .brainShell {
           position: relative;
-          width: min(360px, 80vw);
+          width: min(420px, 84vw);
           aspect-ratio: 1;
           border-radius: 32px;
-          border: 1px solid rgba(255,255,255,0.16);
-          background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.03));
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 24px 60px rgba(112, 26, 117, 0.35);
+          border: 1px solid rgba(148, 163, 184, 0.16);
+          background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.65));
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 24px 70px rgba(2, 6, 23, 0.7);
+          animation: float 6s ease-in-out infinite;
           backdrop-filter: blur(20px);
           overflow: hidden;
         }
+
+        .orbit {
+          position: absolute;
+          border: 1px solid rgba(125, 211, 252, 0.2);
+          border-radius: 50%;
+          inset: 8%;
+          animation: spin 14s linear infinite;
+        }
+
+        .orbit2 { inset: 18%; animation-duration: 18s; animation-direction: reverse; }
+        .orbit3 { inset: 28%; animation-duration: 22s; }
 
         .brainCore {
           position: absolute;
           inset: 18%;
           border-radius: 40% 60% 45% 55%;
-          background: radial-gradient(circle at 30% 30%, rgba(249, 168, 212, 0.95), rgba(124, 58, 237, 0.8) 38%, rgba(34, 211, 238, 0.45) 78%, transparent 100%);
+          background: radial-gradient(circle at 30% 30%, rgba(147, 197, 253, 0.95), rgba(37, 99, 235, 0.86) 38%, rgba(8, 145, 178, 0.35) 78%, transparent 100%);
           filter: blur(2px);
           animation: float 4s ease-in-out infinite;
         }
@@ -336,6 +404,8 @@ export default function HomePage() {
         .node2 { top: 38%; right: 24%; }
         .node3 { bottom: 28%; left: 22%; }
         .node4 { bottom: 20%; right: 32%; }
+        .node5 { top: 12%; right: 38%; }
+        .node6 { bottom: 12%; left: 38%; }
 
         .welcomePanel, .premiumCta {
           display: flex;
@@ -344,9 +414,9 @@ export default function HomePage() {
           align-items: center;
           padding: 24px 28px;
           border-radius: 24px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.12);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+          background: rgba(8, 11, 22, 0.78);
+          border: 1px solid rgba(148, 163, 184, 0.16);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
         }
 
         .welcomePanel p, .premiumCta p {
@@ -375,7 +445,7 @@ export default function HomePage() {
           color: #f5d0fe;
         }
 
-        .featureGrid, .coachList, .testimonialSection {
+        .featureGrid, .coachList, .testimonialSection, .helpGrid {
           display: grid;
           gap: 16px;
         }
@@ -406,7 +476,7 @@ export default function HomePage() {
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
-        .testimonialSection {
+        .testimonialSection, .helpGrid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
@@ -422,6 +492,16 @@ export default function HomePage() {
           to { transform: translateY(-120px); }
         }
 
+        @keyframes sweep {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100%); }
+        }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
         @keyframes pulse {
           0%, 100% { transform: scale(1); opacity: 0.95; }
           50% { transform: scale(1.15); opacity: 0.7; }
@@ -432,6 +512,30 @@ export default function HomePage() {
           50% { transform: translateY(-8px); }
         }
 
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        .featureRows {
+          display: grid;
+          gap: 12px;
+        }
+
+        .featureRow {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .chip {
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.07);
+          border: 1px solid rgba(255,255,255,0.12);
+          color: #e0f2fe;
+        }
+
         @media (max-width: 900px) {
           .hero, .welcomePanel, .premiumCta {
             grid-template-columns: 1fr;
@@ -439,7 +543,7 @@ export default function HomePage() {
             align-items: flex-start;
           }
 
-          .featureGrid, .coachList, .testimonialSection {
+          .featureGrid, .coachList, .testimonialSection, .helpGrid {
             grid-template-columns: 1fr;
           }
         }
