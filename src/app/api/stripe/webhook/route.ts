@@ -6,10 +6,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2026-06-24.dahlia",
 });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    return null;
+  }
+
+  return createClient(url, key);
+}
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -29,10 +35,10 @@ export async function POST(req: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as any;
-
     const userId = session.metadata?.userId;
+    const supabase = getSupabaseClient();
 
-    if (userId) {
+    if (userId && supabase) {
       await supabase
         .from("profiles")
         .update({ is_premium: true })

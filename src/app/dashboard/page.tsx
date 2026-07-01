@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -12,320 +12,317 @@ type Message = {
 export default function Dashboard() {
   const router = useRouter();
 
-  const [userId, setUserId] = useState<string | null>(null);
-
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
-  const [streak] = useState(0);
-
   const [plan, setPlan] = useState<"basic" | "premium">("basic");
-
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "I am My Future 🌌 — let’s build your life." },
+    {
+      role: "assistant",
+      content:
+        "I’m your general My Future coach. Tell me what you want to build today, and I’ll help you turn it into an action plan.",
+    },
   ]);
-
   const [input, setInput] = useState("");
-
-  const [levelUp, setLevelUp] = useState(false);
-  const [messagesCount, setMessagesCount] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
   const [xpToday, setXpToday] = useState(0);
 
-  const prevLevel = useRef(1);
-
-  /* AUTH CHECK */
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
-
       if (!data.session) {
         router.replace("/login");
-      } else {
-        setUserId(data.session.user.id);
       }
     };
 
+    const stored = localStorage.getItem("plan") as "basic" | "premium" | null;
+    if (stored) {
+      setPlan(stored);
+    }
+
     checkUser();
-  }, []);
+  }, [router]);
 
-  /* LOAD PLAN */
   useEffect(() => {
-    const stored = localStorage.getItem("plan") as
-      | "basic"
-      | "premium"
-      | null;
-
-    if (stored) setPlan(stored);
-  }, []);
-
-  /* XP SYSTEM */
-  const xpNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
+    const nextLevel = Math.floor(xp / 120) + 1;
+    setLevel(nextLevel);
+  }, [xp]);
 
   const calculateXP = (text: string) => {
     const words = text.trim().split(/\s+/).filter(Boolean).length;
-    if (words < 10) return 2;
-    if (words < 25) return 4;
-    if (words < 60) return 8;
-    return 12;
+    if (words < 8) return 3;
+    if (words < 18) return 5;
+    return 8;
   };
 
-  useEffect(() => {
-    const newLevel = Math.floor(xp / 100) + 1;
-
-    if (newLevel !== level) {
-      setLevel(newLevel);
-
-      setLevelUp(true);
-      setTimeout(() => setLevelUp(false), 1200);
-
-      prevLevel.current = newLevel;
-    }
-  }, [xp]);
-
-  const getPersonality = () => {
-    if (level < 10) return "friendly coach";
-    if (level < 25) return "motivational trainer";
-    if (level < 50) return "elite AI coach";
-    return "god-tier strategist";
-  };
-
-  /* =========================
-     FIXED SEND MESSAGE (NO TYPE ERROR)
-  ========================= */
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    if (plan === "basic" && level >= 50) {
-      alert("🔒 Upgrade to Premium to continue leveling.");
-      return;
-    }
-
     const userText = input;
+    const nextMessages = [...messages, { role: "user" as const, content: userText }];
 
-    // ✅ FIX IS HERE (SAFE CAST FIX)
-    const newMessages = [
-      ...messages,
-      { role: "user", content: userText },
-    ] as Message[];
-
-    setMessages(newMessages);
+    setMessages(nextMessages);
     setInput("");
-    setMessagesCount((p) => p + 1);
+    setMessageCount((value) => value + 1);
 
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        messages: newMessages.slice(-10),
-        personality: getPersonality(),
+        messages: nextMessages.slice(-8),
+        coach: "free",
+        isPremium: false,
       }),
     });
 
     const data = await res.json();
-
-    setMessages((prev) => [
-      ...prev,
-      { role: "assistant", content: data.reply },
-    ]);
+    setMessages((current) => [...current, { role: "assistant", content: data.reply }]);
 
     const gainedXP = calculateXP(userText);
-
-    setXpToday((p) => p + gainedXP);
-
-    setXp((prev) => {
-      let newXP = prev + gainedXP;
-      let newLevel = level;
-
-      while (newXP >= xpNeeded(newLevel)) {
-        newXP -= xpNeeded(newLevel);
-        newLevel += 1;
-
-        setLevelUp(true);
-        setTimeout(() => setLevelUp(false), 1200);
-      }
-
-      return newXP;
-    });
+    setXpToday((value) => value + gainedXP);
+    setXp((value) => value + gainedXP);
   };
 
   return (
-    <div className="space">
-      <div className="stars" />
-      <div className="nebula" />
-
-      {levelUp && <div className="levelUp">✨ LEVEL UP!</div>}
-
-      <div className="chatBox">
-        <div className="top">
-          <div>🌌 My Future AI</div>
-
-          <div className="topRight">
-            <div>⭐ Level {level}</div>
-
+    <div className="page">
+      <div className="ambient" />
+      <div className="panel">
+        <div className="topBar">
+          <div>
+            <div className="title">My Future • Daily AI Coach</div>
+            <div className="subtitle">Keep it simple, stay consistent, and grow one day at a time.</div>
+          </div>
+          <div className="statusWrap">
+            <div className="pill">Level {level}</div>
+            <div className="pill">XP {xp}</div>
             {plan === "premium" ? (
-              <div className="premiumBadge">👑 Premium</div>
+              <div className="premium">Premium</div>
             ) : (
-              <button
-                className="upgradeBtn"
-                onClick={() => router.push("/pricing")}
-              >
-                🚀 Upgrade
+              <button className="upgrade" onClick={() => router.push("/pricing")}>
+                Upgrade
               </button>
             )}
           </div>
         </div>
 
+        <div className="progressCard">
+          <div>
+            <strong>Basic progress</strong>
+            <p>Daily coaching and XP keep your momentum alive.</p>
+          </div>
+          <div className="barTrack">
+            <div className="barFill" style={{ width: `${Math.min(100, xp % 120)}%` }} />
+          </div>
+        </div>
+
         <div className="messages">
-          {messages.map((m, i) => (
-            <div key={i} className={`msg ${m.role}`}>
-              {m.content}
+          {messages.map((message, index) => (
+            <div key={`${message.role}-${index}`} className={`message ${message.role}`}>
+              {message.content}
             </div>
           ))}
         </div>
 
-        <div className="inputRow">
+        <div className="composer">
           <input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Message My Future..."
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="Share your focus for today..."
+            onKeyDown={(event) => event.key === "Enter" && sendMessage()}
           />
           <button onClick={sendMessage}>Send</button>
         </div>
 
-        <div className="analytics">
-          📊 Messages: {messagesCount} | ⚡ XP Today: {xpToday}
+        <div className="footerInfo">
+          <span>Messages {messageCount}</span>
+          <span>XP today {xpToday}</span>
+          {plan !== "premium" && <span>Unlock premium coaches and memory</span>}
         </div>
       </div>
 
       <style jsx>{`
-        .space {
-          height: 100vh;
-          overflow: hidden;
+        .page {
+          min-height: 100vh;
           display: flex;
-          justify-content: center;
           align-items: center;
+          justify-content: center;
+          padding: 24px;
+          background: linear-gradient(140deg, #04030b, #12162d 48%, #0f172a 100%);
           color: white;
-          background: radial-gradient(circle at top, #050816, #000);
+          position: relative;
+          overflow: hidden;
         }
 
-        .stars {
-          position: absolute;
-          width: 200%;
-          height: 200%;
-          background-image: radial-gradient(white 1px, transparent 1px);
-          background-size: 50px 50px;
-          opacity: 0.12;
-        }
-
-        .nebula {
+        .ambient {
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 30% 30%, #6a5acd33, transparent 60%),
-                      radial-gradient(circle at 70% 70%, #00b4ff22, transparent 60%);
+          background: radial-gradient(circle at top left, rgba(168, 85, 247, 0.24), transparent 32%), radial-gradient(circle at bottom right, rgba(34, 211, 238, 0.16), transparent 28%);
+          filter: blur(12px);
         }
 
-        .chatBox {
-          width: 92%;
-          max-width: 1100px;
-          height: 92vh;
+        .panel {
+          position: relative;
+          z-index: 1;
+          width: min(1000px, 100%);
           display: flex;
           flex-direction: column;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1);
-          backdrop-filter: blur(20px);
-          border-radius: 20px;
-          z-index: 2;
+          gap: 16px;
+          padding: 20px;
+          border-radius: 24px;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.14);
+          box-shadow: 0 24px 80px rgba(0,0,0,0.28);
+          backdrop-filter: blur(24px);
         }
 
-        .top {
+        .topBar {
           display: flex;
           justify-content: space-between;
-          padding: 12px 18px;
-          border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .topRight {
-          display: flex;
-          gap: 12px;
+          gap: 16px;
           align-items: center;
         }
 
-        .upgradeBtn {
-          padding: 8px 14px;
-          border: none;
-          border-radius: 999px;
+        .title {
+          font-size: 1.1rem;
           font-weight: 700;
-          background: linear-gradient(90deg, #7c3aed, #00b4ff);
-          color: white;
         }
 
-        .premiumBadge {
-          padding: 8px 14px;
-          border-radius: 999px;
-          background: linear-gradient(90deg, #f59e0b, #fbbf24);
-          color: black;
-          font-weight: 800;
+        .subtitle {
+          margin-top: 4px;
+          font-size: 0.92rem;
+          color: #cbd5e1;
         }
 
-        .messages {
-          flex: 1;
-          padding: 18px;
-          overflow-y: auto;
+        .statusWrap {
           display: flex;
-          flex-direction: column;
-          gap: 10px;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
         }
 
-        .msg {
-          padding: 12px;
-          border-radius: 12px;
-          max-width: 70%;
+        .pill, .premium, .upgrade {
+          border-radius: 999px;
+          padding: 8px 12px;
+          font-size: 0.9rem;
         }
 
-        .user {
-          margin-left: auto;
-          background: rgba(0,180,255,0.2);
-        }
-
-        .assistant {
+        .pill {
           background: rgba(255,255,255,0.08);
         }
 
-        .inputRow {
+        .premium {
+          background: linear-gradient(90deg, #f59e0b, #fbbf24);
+          color: #111827;
+          font-weight: 700;
+        }
+
+        .upgrade {
+          border: 0;
+          cursor: pointer;
+          background: linear-gradient(90deg, #8b5cf6, #22d3ee);
+          color: white;
+        }
+
+        .progressCard {
           display: flex;
-          padding: 12px;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: center;
+          padding: 14px 16px;
+          border-radius: 18px;
+          background: rgba(255,255,255,0.05);
+        }
+
+        .progressCard p {
+          margin-top: 4px;
+          color: #cbd5e1;
+          font-size: 0.9rem;
+        }
+
+        .barTrack {
+          width: min(280px, 100%);
+          height: 10px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.1);
+          overflow: hidden;
+        }
+
+        .barFill {
+          height: 100%;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #8b5cf6, #22d3ee);
+        }
+
+        .messages {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          max-height: 480px;
+          overflow-y: auto;
+          padding-right: 4px;
+        }
+
+        .message {
+          max-width: 78%;
+          padding: 12px 14px;
+          border-radius: 14px;
+          line-height: 1.6;
+          white-space: pre-wrap;
+        }
+
+        .message.user {
+          align-self: flex-end;
+          background: rgba(34,211,238,0.18);
+        }
+
+        .message.assistant {
+          background: rgba(255,255,255,0.08);
+        }
+
+        .composer {
+          display: flex;
           gap: 10px;
         }
 
         input {
           flex: 1;
-          padding: 12px;
-          border-radius: 10px;
-          border: none;
+          border: 1px solid rgba(255,255,255,0.16);
+          border-radius: 999px;
           background: rgba(255,255,255,0.08);
           color: white;
+          padding: 12px 16px;
         }
 
         button {
+          border: 0;
+          border-radius: 999px;
           padding: 12px 16px;
-          border: none;
-          border-radius: 10px;
-          background: #7c3aed;
+          background: linear-gradient(90deg, #8b5cf6, #22d3ee);
           color: white;
+          cursor: pointer;
         }
 
-        .analytics {
-          padding: 8px 12px;
-          font-size: 12px;
-          opacity: 0.7;
+        .footerInfo {
+          display: flex;
+          justify-content: space-between;
+          color: #cbd5e1;
+          font-size: 0.9rem;
+          flex-wrap: wrap;
+          gap: 8px;
         }
 
-        .levelUp {
-          position: absolute;
-          top: 20%;
-          left: 50%;
-          transform: translateX(-50%);
-          font-size: 40px;
-          text-shadow: 0 0 20px #00b4ff;
+        @media (max-width: 720px) {
+          .topBar, .progressCard {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .message {
+            max-width: 100%;
+          }
+
+          .composer {
+            flex-direction: column;
+          }
         }
       `}</style>
     </div>
