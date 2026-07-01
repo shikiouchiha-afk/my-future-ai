@@ -104,11 +104,15 @@ export default function PremiumPage() {
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("is_premium")
+          .select("is_premium, is_admin")
           .eq("id", user.id)
           .single();
 
-        const premium = profile?.is_premium === true;
+        const premium = getPremiumStatus({
+          email: user.email,
+          profilePremium: profile?.is_premium,
+          isAdmin: profile?.is_admin,
+        });
         setIsPremium(premium);
 
         if (!premium) {

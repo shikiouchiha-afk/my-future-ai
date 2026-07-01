@@ -5,6 +5,16 @@ export function isPremiumEmail(email?: string | null) {
   return PREMIUM_EMAILS.includes(email.trim().toLowerCase());
 }
 
-export function getPremiumStatus(options?: { email?: string | null; profilePremium?: boolean | null; cookiePremium?: boolean }) {
-  return Boolean(options?.profilePremium || options?.cookiePremium || isPremiumEmail(options?.email));
+export function getPremiumStatus(options?: {
+  email?: string | null;
+  profilePremium?: boolean | null;
+  isAdmin?: boolean | null;
+  cookiePremium?: boolean;
+}) {
+  return Boolean(
+    options?.isAdmin ||
+    options?.profilePremium ||
+    options?.cookiePremium ||
+    isPremiumEmail(options?.email)
+  );
 }
