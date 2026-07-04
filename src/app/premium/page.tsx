@@ -283,9 +283,10 @@ export default function PremiumPage() {
     setDraftSaved(false);
 
     const memorySummary = buildMemorySummary(memory);
-    const energeticPrefix = /\b(hype|excited|fire|go|let's go|crazy|winning|strong)\b/i.test(text)
-      ? "You’re bringing strong energy, so I’m matching that pace and pushing for action."
-      : "I’m staying calm, focused, and grounded while helping you move forward.";
+    const energeticPrefix =
+  /\b(hype|excited|fire|go|let's go|crazy|winning|strong)\b/i.test(text)
+    ? "Match the user's energy naturally without announcing that you're doing it."
+    : "Respond naturally. Never describe your emotions, internal state, or personality before answering.";
 
     setMessages((current) => [...current, { role: "user", content: text }, { role: "assistant", content: "" }]);
 
