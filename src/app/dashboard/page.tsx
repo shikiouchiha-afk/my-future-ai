@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import MobileBottomNav from "@/app/components/MobileBottomNav";
+import { triggerHaptic } from "@/lib/mobileFeedback";
 
 type Message = {
   role: "user" | "assistant";
@@ -97,6 +99,24 @@ export default function Dashboard() {
     scrollToBottomSmooth();
   }, [messages]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const setVh = () => {
+      const height = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty("--mobile-vh", `${height}px`);
+    };
+
+    setVh();
+    window.visualViewport?.addEventListener("resize", setVh);
+    window.addEventListener("resize", setVh);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", setVh);
+      window.removeEventListener("resize", setVh);
+    };
+  }, []);
+
   const getPersonality = () => {
     if (level < 10) return "friendly coach";
     if (level < 25) return "motivational trainer";
@@ -112,6 +132,7 @@ export default function Dashboard() {
     }
 
     const userText = input.trim();
+    triggerHaptic(12);
     const newMessages = [...messages, { role: "user" as const, content: userText }] as Message[];
     setMessages(newMessages);
     setInput("");
@@ -188,14 +209,17 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <MobileBottomNav />
+
       <style jsx>{`
         .space {
-          height: 100vh;
+          min-height: 100dvh;
           overflow: hidden;
           display: flex;
           justify-content: center;
           align-items: center;
           color: white;
+          padding: calc(10px + env(safe-area-inset-top)) 10px calc(80px + env(safe-area-inset-bottom));
           background: radial-gradient(circle at top, #050816, #000);
         }
         .stars {
@@ -212,9 +236,9 @@ export default function Dashboard() {
           background: radial-gradient(circle at 30% 30%, #6a5acd33, transparent 60%), radial-gradient(circle at 70% 70%, #00b4ff22, transparent 60%);
         }
         .chatBox {
-          width: 92%;
+          width: min(1100px, 100%);
           max-width: 1100px;
-          height: 92vh;
+          height: min(92dvh, 900px);
           display: flex;
           flex-direction: column;
           background: rgba(255,255,255,0.05);
@@ -226,6 +250,9 @@ export default function Dashboard() {
         .top {
           display: flex;
           justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
           padding: 12px 18px;
           border-bottom: 1px solid rgba(255,255,255,0.1);
         }
@@ -254,9 +281,10 @@ export default function Dashboard() {
         .msg {
           padding: 12px;
           border-radius: 12px;
-          max-width: 70%;
+          max-width: 82%;
           line-height: 1.6;
           white-space: pre-wrap;
+          word-break: break-word;
         }
         .user {
           margin-left: auto;
@@ -269,6 +297,7 @@ export default function Dashboard() {
           display: flex;
           padding: 12px;
           gap: 10px;
+          align-items: center;
         }
         input {
           flex: 1;
@@ -285,6 +314,8 @@ export default function Dashboard() {
           background: #7c3aed;
           color: white;
           cursor: pointer;
+          min-height: 44px;
+          flex-shrink: 0;
         }
         .analytics {
           padding: 8px 12px;
@@ -298,6 +329,35 @@ export default function Dashboard() {
           transform: translateX(-50%);
           font-size: 40px;
           text-shadow: 0 0 20px #00b4ff;
+        }
+        @media (max-width: 900px) {
+          .space {
+            align-items: stretch;
+          }
+          .chatBox {
+            height: calc(var(--mobile-vh, 100dvh) - 102px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+            border-radius: 16px;
+          }
+          .top {
+            padding: 10px 12px;
+          }
+          .messages {
+            padding: 12px;
+          }
+          .msg {
+            max-width: 100%;
+            font-size: 0.95rem;
+          }
+          .inputRow {
+            padding: 10px;
+          }
+          input {
+            min-height: 44px;
+          }
+          .analytics {
+            font-size: 11px;
+            padding: 8px 10px;
+          }
         }
       `}</style>
     </div>

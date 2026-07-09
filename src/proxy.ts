@@ -4,9 +4,8 @@ import type { NextRequest } from "next/server";
 const protectedPrefixes = ["/premium", "/dashboard", "/admin"];
 const authOnlyPrefixes = ["/login", "/signup"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const premiumCookie = request.cookies.get("myfuture_premium")?.value === "1";
   const adminCookie = request.cookies.get("myfuture_admin")?.value === "1";
   const sessionCookie = request.cookies.get("myfuture_session")?.value === "1";
 

@@ -93,13 +93,13 @@ export default function PricingPage() {
 
       <style jsx>{`
         .page {
-          min-height: 100vh;
+          min-height: 100dvh;
           background: radial-gradient(circle at top, #0b1020, #000);
           color: white;
           display: flex;
           justify-content: center;
           align-items: center;
-          padding: 40px;
+          padding: calc(18px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));
         }
 
         .container {
@@ -108,7 +108,7 @@ export default function PricingPage() {
         }
 
         .title {
-          font-size: 32px;
+          font-size: clamp(1.8rem, 5vw, 2rem);
           font-weight: 800;
           margin-bottom: 10px;
         }
@@ -132,6 +132,7 @@ export default function PricingPage() {
           border: 1px solid rgba(255,255,255,0.1);
           color: white;
           cursor: pointer;
+          min-height: 44px;
         }
 
         .coachCard.active {
@@ -165,12 +166,24 @@ export default function PricingPage() {
         .cta {
           width: 100%;
           padding: 14px;
+          min-height: 46px;
           border: none;
           border-radius: 12px;
           background: linear-gradient(90deg, #7c3aed, #00b4ff);
           color: white;
           font-weight: 700;
           cursor: pointer;
+        }
+        @media (max-width: 760px) {
+          .coachGrid {
+            grid-template-columns: 1fr;
+          }
+          .premiumBox {
+            padding: 18px;
+          }
+          .price {
+            font-size: 24px;
+          }
         }
       `}</style>
     </div>

@@ -68,6 +68,7 @@ export async function loadOrCreateStreak(userId: string) {
         last_active_date: null,
         completed_missions: [],
         total_progress: 0,
+        updated_at: new Date().toISOString(),
       },
       { onConflict: "user_id" }
     )
@@ -83,42 +84,55 @@ export async function loadOrCreateStreak(userId: string) {
 }
 
 export async function updateStreak(userId: string, completedMissions: string[] = []) {
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
   const { data } = await supabase
     .from("user_progress")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (!data) return;
+  if (!data) return null;
 
-  const lastActive = data.last_active_date;
-  const lastDate = lastActive ? new Date(lastActive).toISOString().slice(0, 10) : null;
+  const lastUpdatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+  const elapsedMs = lastUpdatedAt > 0 ? now.getTime() - lastUpdatedAt : Number.POSITIVE_INFINITY;
+  const dayMs = 24 * 60 * 60 * 1000;
+  const elapsedDays = Number.isFinite(elapsedMs) ? Math.floor(elapsedMs / dayMs) : 0;
 
   let currentStreak = data.current_streak || 0;
-  if (lastDate === today) {
-    currentStreak = data.current_streak || 0;
-  } else if (lastDate && new Date(today).getTime() - new Date(lastDate).getTime() === 86400000) {
-    currentStreak += 1;
-  } else {
+
+  if (currentStreak === 0) {
     currentStreak = 1;
+  } else if (!Number.isFinite(elapsedMs) || elapsedMs >= dayMs) {
+    if (elapsedDays <= 1) {
+      currentStreak += 1;
+    } else {
+      currentStreak = 1;
+    }
   }
 
   const longestStreak = Math.max(data.longest_streak || 0, currentStreak);
 
-  const { error } = await supabase.from("user_progress").upsert(
-    {
-      user_id: userId,
-      current_streak: currentStreak,
-      longest_streak: longestStreak,
-      last_active_date: today,
-      completed_missions: completedMissions,
-      total_progress: data.total_progress || 0,
-    },
-    { onConflict: "user_id" }
-  );
+  const payload = {
+    user_id: userId,
+    current_streak: currentStreak,
+    longest_streak: longestStreak,
+    last_active_date: today,
+    completed_missions: completedMissions,
+    total_progress: data.total_progress || 0,
+    updated_at: now.toISOString(),
+  };
+
+  const { data: updatedData, error } = await supabase
+    .from("user_progress")
+    .upsert(payload, { onConflict: "user_id" })
+    .select("*")
+    .maybeSingle();
 
   if (error) {
     console.error("Could not update streak", error);
+    return null;
   }
+
+  return updatedData;
 }

@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:mobile": "playwright test tests/mobile-layout.spec.ts",
+    "test:mobile:headed": "playwright test tests/mobile-layout.spec.ts --headed",
+    "test:mobile:auth": "playwright test tests/mobile-auth.spec.ts",
+    "test:mobile:all": "playwright test tests/mobile-layout.spec.ts tests/mobile-auth.spec.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -21,6 +25,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@playwright/test": "^1.55.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

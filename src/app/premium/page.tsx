@@ -18,6 +18,8 @@ import {
 } from "@/lib/coachMemory";
 import { getStoredTheme, setStoredTheme, themeTokens, type AppTheme } from "@/lib/theme";
 import { getPremiumStatus } from "@/lib/premiumAccess";
+import MobileBottomNav from "@/app/components/MobileBottomNav";
+import { triggerHaptic } from "@/lib/mobileFeedback";
 
 type Message = {
   role: "user" | "assistant";
@@ -140,6 +142,24 @@ export default function PremiumPage() {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
     }
   }, [input]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const setVh = () => {
+      const height = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty("--mobile-vh", `${height}px`);
+    };
+
+    setVh();
+    window.visualViewport?.addEventListener("resize", setVh);
+    window.addEventListener("resize", setVh);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", setVh);
+      window.removeEventListener("resize", setVh);
+    };
+  }, []);
 
   useEffect(() => {
     if (!messagesContainerRef.current) return;
@@ -266,13 +286,14 @@ export default function PremiumPage() {
           plans: [mission],
         });
       }
-      await updateStreak(userId, []);
     }
   };
 
   const send = async (overrideText?: string) => {
     const text = (overrideText ?? input).trim();
     if (!text || isTyping || isStreaming) return;
+
+    triggerHaptic(12);
 
     setInput("");
     setPendingPrompt(text);
@@ -283,11 +304,6 @@ export default function PremiumPage() {
     setDraftSaved(false);
 
     const memorySummary = buildMemorySummary(memory);
-    const energeticPrefix =
-  /\b(hype|excited|fire|go|let's go|crazy|winning|strong)\b/i.test(text)
-    ? "Match the user's energy naturally without announcing that you're doing it."
-    : "Respond naturally. Never describe your emotions, internal state, or personality before answering.";
-
     setMessages((current) => [...current, { role: "user", content: text }, { role: "assistant", content: "" }]);
 
     try {
@@ -299,6 +315,7 @@ export default function PremiumPage() {
           goal,
           coach,
           isPremium,
+          userId,
           memorySummary,
         }),
       });
@@ -306,7 +323,7 @@ export default function PremiumPage() {
       if (!res.ok) throw new Error("Request failed");
 
       const data = await res.json();
-      const reply = `${energeticPrefix}\n\n${data.reply}`;
+      const reply = data.reply;
 
       let typed = 0;
       const interval = window.setInterval(() => {
@@ -324,7 +341,6 @@ export default function PremiumPage() {
           setIsStreaming(false);
           setXp((current) => current + rewardXP(goal));
           setCompletedMissionCount((current) => current + 1);
-          setStreak((current) => ({ ...current, total_progress: current.total_progress + 1 }));
 
           if (userId) {
             const nextMemory: CoachMemory = {
@@ -348,7 +364,21 @@ export default function PremiumPage() {
               last_focus: text,
               plans: nextMemory.plans.slice(0, 6),
             });
-            void updateStreak(userId, [...streak.completed_missions, text]);
+
+            const completedMissions = [...streak.completed_missions, text];
+            void (async () => {
+              const updatedStreak = await updateStreak(userId, completedMissions);
+              setStreak((current) => ({
+                ...current,
+                current_streak: updatedStreak?.current_streak ?? current.current_streak,
+                longest_streak: updatedStreak?.longest_streak ?? current.longest_streak,
+                last_active_date: updatedStreak?.last_active_date ?? current.last_active_date,
+                completed_missions: updatedStreak?.completed_missions ?? completedMissions,
+                total_progress: current.total_progress + 1,
+              }));
+            })();
+          } else {
+            setStreak((current) => ({ ...current, total_progress: current.total_progress + 1 }));
           }
         }
       }, 18);
@@ -417,11 +447,11 @@ export default function PremiumPage() {
 
         <style jsx>{`
           .onboardPage {
-            min-height: 100vh;
+              min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+              padding: calc(16px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
             background: linear-gradient(135deg, #04030b, #140c2d 45%, #0f172a 100%);
             color: white;
           }
@@ -543,7 +573,7 @@ export default function PremiumPage() {
                 </div>
               </div>
 
-              <div className="messages">
+              <div className="messages" ref={messagesContainerRef} onScroll={handleScroll}>
                 {messages.map((message, index) => (
                   <div key={`${message.role}-${index}`} className={`bubble ${message.role}`}>
                     {message.content}
@@ -552,11 +582,13 @@ export default function PremiumPage() {
               </div>
 
               <div className="composer">
-                <input
+                <textarea
+                  ref={textareaRef}
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   placeholder="Ask your coach for a plan, review, or next move..."
-                  onKeyDown={(event) => event.key === "Enter" && send()}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
                 />
                 <button onClick={() => send()}>Send</button>
               </div>
@@ -580,11 +612,13 @@ export default function PremiumPage() {
         </main>
       </div>
 
+      <MobileBottomNav />
+
       <style jsx>{`
         .page {
           position: relative;
-          min-height: 100vh;
-          padding: 24px;
+          min-height: 100dvh;
+          padding: calc(12px + env(safe-area-inset-top)) 12px calc(88px + env(safe-area-inset-bottom));
           overflow: hidden;
           background: linear-gradient(135deg, #04030b, #140c2d 55%, #0f172a 100%);
           color: white;
@@ -611,7 +645,7 @@ export default function PremiumPage() {
           display: grid;
           grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
           gap: 18px;
-          max-width: 1480px;
+          width: min(1480px, 100%);
           margin: 0 auto;
           align-items: start;
         }
@@ -629,7 +663,7 @@ export default function PremiumPage() {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.1);
           border-radius: 24px;
-          padding: 18px;
+          padding: clamp(12px, 2vw, 18px);
           backdrop-filter: blur(24px);
           min-width: 0;
         }
@@ -668,10 +702,12 @@ export default function PremiumPage() {
           align-items: center;
           gap: 16px;
           margin-bottom: 14px;
+          flex-wrap: wrap;
         }
         .title { font-size: 1.16rem; font-weight: 700; }
         .subtitle { margin-top: 4px; color: #cbd5e1; font-size: 0.95rem; }
         .toolbar { display: flex; gap: 8px; align-items: center; }
+        .toolbar { flex-wrap: wrap; }
         .backBtn {
           border: 0;
           border-radius: 999px;
@@ -743,11 +779,11 @@ export default function PremiumPage() {
         }
         .chatCard {
           width: min(100%, 900px);
-          padding: 16px;
+          padding: clamp(12px, 1.8vw, 16px);
           border-radius: 22px;
           background: rgba(255,255,255,0.05);
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-          min-height: 620px;
+          min-height: clamp(460px, 64dvh, 720px);
           display: flex;
           flex-direction: column;
         }
@@ -777,6 +813,7 @@ export default function PremiumPage() {
           overflow-y: auto;
           padding: 4px 4px 8px;
           margin-bottom: 14px;
+          min-height: 220px;
         }
         .bubble {
           max-width: 78%;
@@ -789,10 +826,31 @@ export default function PremiumPage() {
         }
         .bubble.user { align-self: flex-end; background: linear-gradient(135deg, rgba(34,211,238,0.24), rgba(14,165,233,0.2)); }
         .bubble.assistant { background: rgba(255,255,255,0.09); }
-        .composer { display: flex; gap: 10px; align-items: center; }
-        input { flex: 1; border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; background: rgba(255,255,255,0.08); color: white; padding: 12px 16px; }
-        input::placeholder { color: #cbd5e1; }
-        button { border: 0; border-radius: 999px; padding: 12px 16px; background: linear-gradient(90deg, #7c3aed, #22d3ee); color: white; cursor: pointer; }
+        .composer { display: flex; gap: 10px; align-items: flex-end; }
+        textarea {
+          flex: 1;
+          border: 1px solid rgba(255,255,255,0.16);
+          border-radius: 18px;
+          background: rgba(255,255,255,0.08);
+          color: white;
+          padding: 12px 14px;
+          min-height: 48px;
+          max-height: 160px;
+          resize: none;
+          font: inherit;
+          line-height: 1.45;
+        }
+        textarea::placeholder { color: #cbd5e1; }
+        button {
+          border: 0;
+          border-radius: 999px;
+          padding: 12px 16px;
+          min-height: 48px;
+          background: linear-gradient(90deg, #7c3aed, #22d3ee);
+          color: white;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
         .insightGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
         .status { color: white; padding: 40px; }
         @keyframes drift {
@@ -807,13 +865,35 @@ export default function PremiumPage() {
           .shell { grid-template-columns: 1fr; }
         }
         @media (max-width: 720px) {
-          .heroStrip, .topBar, .chatHeader, .composer, .insightGrid {
+          .heroStrip, .topBar, .chatHeader, .insightGrid {
             flex-direction: column;
             align-items: flex-start;
           }
+          .page {
+            padding: calc(10px + env(safe-area-inset-top)) 8px calc(12px + env(safe-area-inset-bottom));
+          }
+          .shell {
+            gap: 10px;
+          }
+          .sidebar {
+            padding: 10px;
+          }
           .metricsGrid { min-width: 0; width: 100%; }
           .bubble { max-width: 100%; }
-          .chatCard { min-height: 540px; }
+          .chatCard {
+            min-height: calc(var(--mobile-vh, 100dvh) - 300px);
+            border-radius: 16px;
+          }
+          .chatHeader {
+            align-items: flex-start;
+          }
+          .composer {
+            width: 100%;
+            align-items: flex-end;
+          }
+          .composer button {
+            min-width: 84px;
+          }
         }
       `}</style>
     </div>

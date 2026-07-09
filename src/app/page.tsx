@@ -88,6 +88,30 @@ const testimonials = [
   },
 ];
 
+const helpTopics = [
+  {
+    title: "Account and Login Help",
+    description:
+      "Cannot sign in, reset password, or recover access? Open secure account recovery in one tap.",
+    href: "/login",
+    cta: "Fix login",
+  },
+  {
+    title: "Billing and Premium Access",
+    description:
+      "Need help with upgrades, billing confirmations, or premium unlock issues? Start here first.",
+    href: "/pricing",
+    cta: "Resolve billing",
+  },
+  {
+    title: "AI Coaching Support",
+    description:
+      "Not sure what to ask the AI? Launch guided coaching and get instant help with goals, focus, and plans.",
+    href: "/premium",
+    cta: "Open AI support",
+  },
+];
+
 const faqs = [
   {
     question: "How fast can I get started?",
@@ -272,6 +296,28 @@ export default function HomePage() {
                   <span>{item.role}</span>
                 </footer>
               </blockquote>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.helpCenterBlock}>
+          <div className={styles.sectionHeading}>
+            <p>AI Help Center</p>
+            <h2>Get instant help for any issue with your AI Agent support box.</h2>
+          </div>
+          <p className={styles.helpCenterIntro}>
+            If anything feels blocked, this AI Help Center guides you to the fastest fix.
+            Choose your issue and jump directly to the right support flow.
+          </p>
+          <div className={styles.helpCenterGrid}>
+            {helpTopics.map((topic) => (
+              <article key={topic.title} className={styles.helpCard}>
+                <h3>{topic.title}</h3>
+                <p>{topic.description}</p>
+                <Link href={topic.href} className={styles.helpCardButton}>
+                  {topic.cta}
+                </Link>
+              </article>
             ))}
           </div>
         </section>

@@ -70,10 +70,10 @@ export default function LoginPage() {
 
       <style jsx>{`
         .page {
-          min-height: 100vh;
+          min-height: 100dvh;
           display: grid;
           place-items: center;
-          padding: 24px;
+          padding: calc(16px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
           background: radial-gradient(circle at top left, rgba(124,58,237,0.28), transparent 30%), linear-gradient(135deg, #04030b, #0f172a 60%, #111827 100%);
           color: white;
           position: relative;
@@ -83,7 +83,7 @@ export default function LoginPage() {
           position: absolute; inset: 0; background: radial-gradient(circle at 80% 20%, rgba(34,211,238,0.16), transparent 28%); filter: blur(30px);
         }
         .card {
-          position: relative; z-index: 1; width: min(470px, 100%); padding: 30px; border-radius: 26px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(24px); box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+          position: relative; z-index: 1; width: min(470px, 100%); padding: clamp(18px, 3vw, 30px); border-radius: 22px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(24px); box-shadow: 0 24px 80px rgba(0,0,0,0.3);
         }
         .brand { font-size: 0.82rem; letter-spacing: 0.25em; text-transform: uppercase; color: #d8b4fe; margin-bottom: 8px; }
         h1 { margin: 0 0 8px; font-size: 2rem; }
@@ -93,12 +93,23 @@ export default function LoginPage() {
         form { display: flex; flex-direction: column; gap: 10px; }
         input { border: 1px solid rgba(255,255,255,0.16); border-radius: 999px; background: rgba(255,255,255,0.08); color: white; padding: 12px 14px; }
         input::placeholder { color: #94a3b8; }
-        button { border: 0; border-radius: 999px; padding: 12px 16px; background: linear-gradient(90deg, #8b5cf6, #22d3ee); color: white; cursor: pointer; font-weight: 700; }
+        button { border: 0; border-radius: 999px; padding: 12px 16px; min-height: 44px; background: linear-gradient(90deg, #8b5cf6, #22d3ee); color: white; cursor: pointer; font-weight: 700; }
         button:disabled { opacity: 0.7; cursor: not-allowed; }
         .error { color: #fda4af; margin: 0; font-size: 0.92rem; }
         .footerLinks { display: flex; gap: 10px; margin-top: 12px; align-items: center; justify-content: space-between; }
         .secondary { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); }
         .linkBtn { background: transparent; padding: 0; color: #cbd5e1; }
+        @media (max-width: 640px) {
+          .footerLinks {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .linkBtn,
+          .secondary {
+            width: 100%;
+            text-align: center;
+          }
+        }
       `}</style>
     </div>
   );

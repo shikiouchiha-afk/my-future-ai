@@ -86,19 +86,30 @@ export default function AdminPage() {
   // =========================
   if (loading) {
     return (
-      <div style={{ color: "white", padding: 20 }}>
+      <div className="loadingState">
         Loading admin panel...
+        <style jsx>{`
+          .loadingState {
+            color: white;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: calc(16px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+            background: linear-gradient(135deg, #02040b, #000814 70%, #091223 100%);
+          }
+        `}</style>
       </div>
     );
   }
 
   return (
-    <div style={styles.page}>
-      <h1 style={{ color: "white" }}>🔥 ADMIN PANEL</h1>
+    <div className="page">
+      <h1>🔥 ADMIN PANEL</h1>
 
-      <div style={styles.grid}>
+      <div className="grid">
         {users.map((u) => (
-          <div key={u.id} style={styles.card}>
+          <div key={u.id} className="card">
             <p><b>ID:</b> {u.id}</p>
 
             <p>
@@ -107,7 +118,7 @@ export default function AdminPage() {
             </p>
 
             <button
-              style={styles.button}
+              className="button"
               onClick={() => togglePremium(u.id, !u.is_premium)}
             >
               Toggle Premium
@@ -115,38 +126,52 @@ export default function AdminPage() {
           </div>
         ))}
       </div>
+
+      <style jsx>{`
+        .page {
+          padding: calc(16px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+          background: linear-gradient(135deg, #02040b, #000814 70%, #091223 100%);
+          min-height: 100dvh;
+          color: white;
+        }
+        h1 {
+          margin: 0;
+          font-size: clamp(1.35rem, 4vw, 1.9rem);
+          letter-spacing: 0.02em;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 12px;
+          margin-top: 16px;
+        }
+        .card {
+          padding: 14px;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.12);
+          color: white;
+          overflow-wrap: anywhere;
+        }
+        p {
+          margin: 0 0 8px;
+          color: #dbeafe;
+          line-height: 1.5;
+          font-size: 0.92rem;
+        }
+        .button {
+          margin-top: 6px;
+          padding: 10px 12px;
+          min-height: 44px;
+          background: linear-gradient(90deg, #0891b2, #2563eb);
+          border: none;
+          color: white;
+          border-radius: 10px;
+          cursor: pointer;
+          width: 100%;
+          font-weight: 700;
+        }
+      `}</style>
     </div>
   );
 }
-
-// =========================
-// STYLES
-// =========================
-const styles = {
-  page: {
-    padding: 30,
-    background: "#000814",
-    minHeight: "100vh",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-    gap: 20,
-    marginTop: 20,
-  },
-  card: {
-    padding: 15,
-    borderRadius: 12,
-    background: "rgba(255,255,255,0.05)",
-    color: "white",
-  },
-  button: {
-    marginTop: 10,
-    padding: 10,
-    background: "#00b4ff",
-    border: "none",
-    color: "white",
-    borderRadius: 8,
-    cursor: "pointer",
-  },
-};
