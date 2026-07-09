@@ -1,571 +1,313 @@
 "use client";
 
-import { useMemo } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Orbitron, Space_Grotesk } from "next/font/google";
+import { useEffect, useRef } from "react";
+import styles from "./page.module.css";
 
-const features = [
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  weight: ["700", "800"],
+  variable: "--font-display",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-body",
+});
+
+const coreFeatures = [
   {
-    title: "Seven elite coaches",
-    copy: "Business, fitness, study, life, mindset, therapist, and productivity designed for real-world progress.",
+    title: "AI Coaching",
+    description:
+      "Switch between specialized coaches for mindset, productivity, business, and high-performance habits.",
   },
   {
-    title: "Persistent memory",
-    copy: "Your plan, habits, strengths, and next steps stay with you across sessions and devices.",
+    title: "Goal Tracking",
+    description:
+      "Set strategic milestones, break them into executable steps, and monitor completion velocity in real time.",
   },
   {
-    title: "Premium analytics",
-    copy: "Track XP, streaks, progression, wellness, learning, and growth with a polished command center.",
+    title: "Habit Building",
+    description:
+      "Build streaks, reinforce consistency, and lock in routines with daily mission loops and feedback.",
+  },
+  {
+    title: "School Assistance",
+    description:
+      "Get structured study plans, clarity on difficult topics, and exam readiness support tailored to your level.",
+  },
+  {
+    title: "Fitness Guidance",
+    description:
+      "Use training logic, recovery pacing, and accountability cues that keep performance steady week after week.",
+  },
+  {
+    title: "Trading Support",
+    description:
+      "Track discipline, evaluate setups, and improve decision quality with risk-aware, process-focused coaching.",
+  },
+  {
+    title: "Live Analytics",
+    description:
+      "Visualize progress metrics, trend lines, and behavior patterns to optimize momentum and outcomes.",
+  },
+  {
+    title: "Premium Systems",
+    description:
+      "Unlock advanced insights, deeper response quality, and custom coaching depth designed for serious growth.",
   },
 ];
 
-const coachPreview = [
-  { name: "Business Coach", blurb: "Startup-style guidance for offers, marketing, and growth." },
-  { name: "Fitness Coach", blurb: "Discipline-first training and recovery systems." },
-  { name: "Study Coach", blurb: "Structured plans that help you learn and retain faster." },
+const premiumHighlights = [
+  "Adaptive memory that gets sharper every session",
+  "Personalized coaching tone based on your goal context",
+  "Instant dashboard insights for daily decision quality",
+  "Mission-based progression with streak reinforcement",
 ];
 
 const testimonials = [
   {
-    quote: "It feels like I finally have a real executive coach in my pocket.",
-    author: "Maya, founder",
+    quote:
+      "The coaching quality feels elite. It turns overwhelming goals into a crystal-clear execution plan.",
+    person: "Arielle N.",
+    role: "Founder",
   },
   {
-    quote: "The experience is calm, premium, and incredibly motivating.",
-    author: "Jordan, product designer",
+    quote:
+      "My routines finally became automatic. The habit system and weekly review flow changed everything.",
+    person: "Marcus L.",
+    role: "Athlete",
+  },
+  {
+    quote:
+      "It feels like a command center for growth, not another chatbot. Premium quality from top to bottom.",
+    person: "Rina K.",
+    role: "Product Lead",
+  },
+];
+
+const faqs = [
+  {
+    question: "How fast can I get started?",
+    answer:
+      "You can create your account in under a minute and immediately launch your first coaching session.",
+  },
+  {
+    question: "Can I use it for multiple goals?",
+    answer:
+      "Yes. You can run business, school, fitness, and personal growth tracks at the same time with separate context.",
+  },
+  {
+    question: "What does premium include?",
+    answer:
+      "Premium unlocks deeper reasoning, richer responses, advanced analytics, and enhanced personalization.",
+  },
+  {
+    question: "Does the app remember my progress?",
+    answer:
+      "Your memory timeline stores key context so the AI can continue from where you left off.",
+  },
+  {
+    question: "Is this mobile-friendly?",
+    answer:
+      "Every section is optimized for desktop, tablet, and mobile with smooth, accessible interactions.",
   },
 ];
 
 export default function HomePage() {
-  const router = useRouter();
-  const featureRows = useMemo(() => [
-    ["Daily AI challenges", "Streak system", "Daily rewards"],
-    ["Weekly goals", "Progress tracking", "Premium themes"],
-  ], [
-  ]);
+  const sceneRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) {
+      return;
+    }
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion) {
+      scene.style.setProperty("--pointer-x", "0");
+      scene.style.setProperty("--pointer-y", "0");
+      return;
+    }
+
+    let raf = 0;
+
+    const updateParallax = (x: number, y: number) => {
+      cancelAnimationFrame(raf);
+      raf = window.requestAnimationFrame(() => {
+        scene.style.setProperty("--pointer-x", x.toFixed(3));
+        scene.style.setProperty("--pointer-y", y.toFixed(3));
+      });
+    };
+
+    const onMove = (event: PointerEvent) => {
+      const rect = scene.getBoundingClientRect();
+      const normalizedX = (event.clientX - rect.left) / rect.width - 0.5;
+      const normalizedY = (event.clientY - rect.top) / rect.height - 0.5;
+      updateParallax(normalizedX, normalizedY);
+    };
+
+    const onLeave = () => {
+      updateParallax(0, 0);
+    };
+
+    scene.addEventListener("pointermove", onMove, { passive: true });
+    scene.addEventListener("pointerleave", onLeave, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      scene.removeEventListener("pointermove", onMove);
+      scene.removeEventListener("pointerleave", onLeave);
+    };
+  }, []);
 
   return (
-    <div className="page">
-      <div className="orbitalGlow" />
-      <div className="neuralGrid" />
-      <div className="brainGlow" />
-      <div className="particleField" />
-      <div className="mistLayer" />
-      <div className="scanLine" />
+    <div
+      ref={sceneRef}
+      className={`${styles.page} ${orbitron.variable} ${spaceGrotesk.variable}`}
+    >
+      <div className={styles.deepSpace} aria-hidden="true" />
+      <div className={styles.starField} aria-hidden="true" />
+      <div className={styles.nebulaLayer} aria-hidden="true" />
+      <div className={styles.particleLayer} aria-hidden="true" />
 
-      <main className="container">
-        <section className="hero">
-          <div className="heroContent">
-            <div className="badge">❄ Cold Signal • AI Coaching Platform</div>
-            <h1>My Future</h1>
-            <p className="subtitle">
-              A darker, colder AI coaching system for discipline, focus, and ruthless progress in business, fitness, learning, and life.
+      <main className={styles.container}>
+        <section className={styles.hero}>
+          <div className={styles.heroCopy}>
+            <p className={styles.kicker}>Cinematic AI Growth Platform</p>
+            <h1>MY Future AI</h1>
+            <p className={styles.tagline}>
+              Design the future you want, then execute it with an intelligent system
+              that coaches your goals, habits, and momentum every day.
             </p>
-            <div className="buttons">
-              <button className="primary" onClick={() => router.push("/signup")}>
-                Start free
-              </button>
-              <button className="secondary" onClick={() => router.push("/login")}>
-                Sign in
-              </button>
+            <div className={styles.heroActions}>
+              <Link className={styles.primaryButton} href="/signup">
+                Start Free
+              </Link>
+              <Link className={styles.secondaryButton} href="/dashboard">
+                See Demo
+              </Link>
             </div>
-            <div className="trustRow">
-              <span>⚡ Fast AI guidance</span>
-              <span>🧠 Coach memory</span>
-              <span>🌐 Responsive by design</span>
+            <div className={styles.metaRow}>
+              <span>Ultra-responsive</span>
+              <span>Adaptive coaching memory</span>
+              <span>Built for momentum</span>
             </div>
           </div>
 
-          <div className="heroVisual" aria-hidden="true">
-            <div className="brainShell">
-              <div className="orbit orbit1" />
-              <div className="orbit orbit2" />
-              <div className="orbit orbit3" />
-              <div className="brainCore" />
-              <div className="neuralNode node1" />
-              <div className="neuralNode node2" />
-              <div className="neuralNode node3" />
-              <div className="neuralNode node4" />
-              <div className="neuralNode node5" />
-              <div className="neuralNode node6" />
-            </div>
-          </div>
-        </section>
-
-        <section className="welcomePanel">
-          <div>
-            <p className="eyebrow">Cinematic welcome</p>
-            <h2>Turn ambition into structured progress.</h2>
-            <p>
-              My Future combines luxury interface design with deep coaching intelligence so every session feels meaningful, strategic, and motivating.
-            </p>
-          </div>
-          <div className="panelStats">
-            <div>
-              <strong>7</strong>
-              <span>Specialized coaches</span>
-            </div>
-            <div>
-              <strong>24/7</strong>
-              <span>Guidance and accountability</span>
-            </div>
-            <div>
-              <strong>∞</strong>
-              <span>Progressive growth</span>
+          <div className={styles.heroVisual} aria-hidden="true">
+            <div className={styles.brainAura} />
+            <div className={styles.brainFrame}>
+              <div className={`${styles.circuit} ${styles.circuitA}`} />
+              <div className={`${styles.circuit} ${styles.circuitB}`} />
+              <div className={`${styles.circuit} ${styles.circuitC}`} />
+              <div className={styles.brainCore} />
+              <div className={styles.neonNode} />
+              <div className={styles.neonNode} />
+              <div className={styles.neonNode} />
+              <div className={styles.neonNode} />
             </div>
           </div>
         </section>
 
-        <section className="featureGrid">
-          {features.map((feature) => (
-            <article key={feature.title} className="card">
-              <h3>{feature.title}</h3>
-              <p>{feature.copy}</p>
-            </article>
-          ))}
+        <section className={styles.metrics}>
+          <article className={styles.metricCard}>
+            <strong>7+</strong>
+            <p>Specialized coaches for business, life, study, and performance.</p>
+          </article>
+          <article className={styles.metricCard}>
+            <strong>24/7</strong>
+            <p>Always-on guidance with context-aware recommendations.</p>
+          </article>
+          <article className={styles.metricCard}>
+            <strong>4K Ready</strong>
+            <p>Cinematic interface tuned for desktop, tablet, and mobile.</p>
+          </article>
         </section>
 
-        <section className="featureRows">
-          {featureRows.map((row, index) => (
-            <div key={index} className="featureRow">
-              {row.map((item) => (
-                <div key={item} className="chip">{item}</div>
-              ))}
-            </div>
-          ))}
-        </section>
-
-        <section className="coachSection">
-          <div className="sectionHeading">
-            <p className="eyebrow">Coach previews</p>
-            <h2>Choose the coach that fits your next breakthrough.</h2>
+        <section className={styles.sectionBlock}>
+          <div className={styles.sectionHeading}>
+            <p>Core Experiences</p>
+            <h2>Everything you need to build your future in one AI workspace.</h2>
           </div>
-          <div className="coachList">
-            {coachPreview.map((coach) => (
-              <div key={coach.name} className="coachCard">
-                <h3>{coach.name}</h3>
-                <p>{coach.blurb}</p>
-              </div>
+          <div className={styles.featureGrid}>
+            {coreFeatures.map((item) => (
+              <article key={item.title} className={styles.featureCard}>
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </article>
             ))}
           </div>
         </section>
 
-        <section className="testimonialSection">
-          {testimonials.map((item) => (
-            <blockquote key={item.author} className="quoteCard">
-              <p>“{item.quote}”</p>
-              <span>{item.author}</span>
-            </blockquote>
-          ))}
-        </section>
-
-        <section className="premiumCta">
+        <section className={styles.premiumPanel}>
           <div>
-            <p className="eyebrow">Upgrade now</p>
-            <h2>Enter a more focused, premium era of self-development.</h2>
+            <p className={styles.panelLabel}>Premium Mode</p>
+            <h2>Luxury SaaS design meets deep, practical intelligence.</h2>
+            <p>
+              Every interaction is tuned for clarity, structure, and measurable growth
+              so your progress feels intentional, not random.
+            </p>
           </div>
-          <button className="primary" onClick={() => router.push("/pricing")}>
-            Explore premium
-          </button>
+          <ul className={styles.highlightList}>
+            {premiumHighlights.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         </section>
 
-        <section className="helpCenter">
-          <div className="sectionHeading">
-            <p className="eyebrow">Help Center</p>
-            <h2>Support, answers, and fast help whenever you need it.</h2>
+        <section className={styles.sectionBlock}>
+          <div className={styles.sectionHeading}>
+            <p>Testimonials</p>
+            <h2>Trusted by ambitious users building serious momentum.</h2>
           </div>
-          <div className="helpGrid">
-            <article className="card">
-              <h3>Support</h3>
-              <p>Get help with setup, billing, onboarding, and premium access.</p>
-            </article>
-            <article className="card">
-              <h3>FAQ</h3>
-              <p>Learn how premium coaches, memory, and streaks work in the app.</p>
-            </article>
-            <article className="card">
-              <h3>Contact</h3>
-              <p>Reach the team anytime for product questions or feedback.</p>
-            </article>
+          <div className={styles.testimonialGrid}>
+            {testimonials.map((item) => (
+              <blockquote key={item.person} className={styles.quoteCard}>
+                <p>{item.quote}</p>
+                <footer>
+                  <strong>{item.person}</strong>
+                  <span>{item.role}</span>
+                </footer>
+              </blockquote>
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.sectionBlock}>
+          <div className={styles.sectionHeading}>
+            <p>FAQs</p>
+            <h2>Clear answers before you launch into your next chapter.</h2>
+          </div>
+          <div className={styles.faqGrid}>
+            {faqs.map((item) => (
+              <article key={item.question} className={styles.faqCard}>
+                <h3>{item.question}</h3>
+                <p>{item.answer}</p>
+              </article>
+            ))}
           </div>
         </section>
       </main>
 
-      <style jsx>{`
-        .page {
-          min-height: 100vh;
-          position: relative;
-          overflow: hidden;
-          padding: 28px;
-          background:
-            radial-gradient(circle at top left, rgba(30, 41, 59, 0.65), transparent 36%),
-            radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.18), transparent 24%),
-            linear-gradient(135deg, #02050b 0%, #050816 45%, #0b1020 100%);
-          color: white;
-        }
-
-        .orbitalGlow, .neuralGrid, .brainGlow, .particleField, .mistLayer, .scanLine {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-        }
-
-        .orbitalGlow {
-          background: radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.22), transparent 34%);
-          filter: blur(48px);
-        }
-
-        .neuralGrid {
-          background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-          background-size: 120px 120px;
-          mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
-          animation: drift 16s linear infinite;
-          opacity: 0.16;
-        }
-
-        .brainGlow {
-          top: -8%;
-          left: 50%;
-          width: 760px;
-          height: 760px;
-          transform: translateX(-50%);
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(15, 23, 42, 0.92) 0%, rgba(30, 64, 175, 0.3) 34%, rgba(8, 145, 178, 0.16) 58%, transparent 72%);
-          filter: blur(90px);
-          animation: pulse 4.5s ease-in-out infinite;
-        }
-
-        .particleField {
-          background-image: radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px);
-          background-size: 120px 120px;
-          opacity: 0.12;
-          animation: drift 11s linear infinite reverse;
-        }
-
-        .mistLayer {
-          background: radial-gradient(circle at 50% 0%, rgba(148, 163, 184, 0.1), transparent 32%);
-          animation: float 8s ease-in-out infinite alternate;
-        }
-
-        .scanLine {
-          background: linear-gradient(180deg, transparent, rgba(255,255,255,0.04), transparent);
-          mix-blend-mode: screen;
-          animation: sweep 7s linear infinite;
-        }
-
-        .container {
-          position: relative;
-          z-index: 1;
-          max-width: 1200px;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-
-        .hero {
-          display: grid;
-          grid-template-columns: 1.1fr 0.9fr;
-          gap: 32px;
-          align-items: center;
-          padding: 34px;
-          border: 1px solid rgba(148, 163, 184, 0.18);
-          border-radius: 28px;
-          background: rgba(5, 10, 20, 0.82);
-          box-shadow: 0 24px 84px rgba(0, 0, 0, 0.7), inset 0 0 30px rgba(14, 165, 233, 0.08);
-          backdrop-filter: blur(24px);
-          animation: fadeUp 0.7s ease both;
-        }
-
-        .badge, .eyebrow {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: rgba(15, 23, 42, 0.86);
-          color: #7dd3fc;
-          font-size: 0.82rem;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          margin-bottom: 14px;
-        }
-
-        h1, h2, h3, p {
-          margin: 0;
-        }
-
-        h1 {
-          font-size: clamp(2.6rem, 4.8vw, 4.4rem);
-          line-height: 0.95;
-          margin-bottom: 12px;
-          font-weight: 800;
-          background: linear-gradient(90deg, #f8fafc 0%, #7dd3fc 40%, #1d4ed8 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        .subtitle {
-          font-size: 1.04rem;
-          line-height: 1.7;
-          color: #cbd5e1;
-          max-width: 680px;
-        }
-
-        .buttons {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-          margin-top: 22px;
-        }
-
-        .primary, .secondary {
-          border: 0;
-          padding: 12px 18px;
-          border-radius: 999px;
-          cursor: pointer;
-          font-weight: 700;
-          transition: transform 180ms ease, box-shadow 180ms ease;
-        }
-
-        .primary {
-          color: white;
-          background: linear-gradient(90deg, #0f172a, #2563eb);
-          box-shadow: 0 16px 30px rgba(15, 23, 42, 0.45);
-        }
-
-        .secondary {
-          color: white;
-          background: rgba(15, 23, 42, 0.85);
-          border: 1px solid rgba(148, 163, 184, 0.18);
-        }
-
-        .primary:hover, .secondary:hover {
-          transform: translateY(-2px);
-        }
-
-        .trustRow {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          margin-top: 16px;
-          color: #94a3b8;
-          font-size: 0.92rem;
-        }
-
-        .heroVisual {
-          display: flex;
-          justify-content: center;
-        }
-
-        .brainShell {
-          position: relative;
-          width: min(420px, 84vw);
-          aspect-ratio: 1;
-          border-radius: 32px;
-          border: 1px solid rgba(148, 163, 184, 0.16);
-          background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.65));
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 24px 70px rgba(2, 6, 23, 0.7);
-          animation: float 6s ease-in-out infinite;
-          backdrop-filter: blur(20px);
-          overflow: hidden;
-        }
-
-        .orbit {
-          position: absolute;
-          border: 1px solid rgba(125, 211, 252, 0.2);
-          border-radius: 50%;
-          inset: 8%;
-          animation: spin 14s linear infinite;
-        }
-
-        .orbit2 { inset: 18%; animation-duration: 18s; animation-direction: reverse; }
-        .orbit3 { inset: 28%; animation-duration: 22s; }
-
-        .brainCore {
-          position: absolute;
-          inset: 18%;
-          border-radius: 40% 60% 45% 55%;
-          background: radial-gradient(circle at 30% 30%, rgba(147, 197, 253, 0.95), rgba(37, 99, 235, 0.86) 38%, rgba(8, 145, 178, 0.35) 78%, transparent 100%);
-          filter: blur(2px);
-          animation: float 4s ease-in-out infinite;
-        }
-
-        .neuralNode {
-          position: absolute;
-          width: 14px;
-          height: 14px;
-          border-radius: 50%;
-          background: rgba(255,255,255,0.95);
-          box-shadow: 0 0 18px rgba(34,211,238,0.8);
-          animation: pulse 2.4s ease-in-out infinite;
-        }
-
-        .node1 { top: 24%; left: 30%; }
-        .node2 { top: 38%; right: 24%; }
-        .node3 { bottom: 28%; left: 22%; }
-        .node4 { bottom: 20%; right: 32%; }
-        .node5 { top: 12%; right: 38%; }
-        .node6 { bottom: 12%; left: 38%; }
-
-        .welcomePanel, .premiumCta {
-          display: flex;
-          justify-content: space-between;
-          gap: 24px;
-          align-items: center;
-          padding: 24px 28px;
-          border-radius: 24px;
-          background: rgba(8, 11, 22, 0.78);
-          border: 1px solid rgba(148, 163, 184, 0.16);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-        }
-
-        .welcomePanel p, .premiumCta p {
-          color: #cbd5e1;
-          line-height: 1.6;
-          max-width: 720px;
-        }
-
-        .panelStats {
-          display: grid;
-          gap: 12px;
-          min-width: 220px;
-        }
-
-        .panelStats div {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          padding: 10px 12px;
-          border-radius: 14px;
-          background: rgba(255,255,255,0.05);
-        }
-
-        .panelStats strong {
-          font-size: 1.2rem;
-          color: #f5d0fe;
-        }
-
-        .featureGrid, .coachList, .testimonialSection, .helpGrid {
-          display: grid;
-          gap: 16px;
-        }
-
-        .featureGrid {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .card, .coachCard, .quoteCard {
-          padding: 18px 20px;
-          border-radius: 18px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.12);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
-        }
-
-        .card h3, .coachCard h3 {
-          margin-bottom: 8px;
-          color: #f5d0fe;
-        }
-
-        .card p, .coachCard p, .quoteCard p {
-          color: #cbd5e1;
-          line-height: 1.65;
-        }
-
-        .coachList {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        .testimonialSection, .helpGrid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .quoteCard span {
-          display: block;
-          margin-top: 10px;
-          color: #7dd3fc;
-          font-size: 0.92rem;
-        }
-
-        @keyframes drift {
-          from { transform: translateY(0px); }
-          to { transform: translateY(-120px); }
-        }
-
-        @keyframes sweep {
-          0% { transform: translateY(-100%); }
-          100% { transform: translateY(100%); }
-        }
-
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.95; }
-          50% { transform: scale(1.15); opacity: 0.7; }
-        }
-
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-        }
-
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
-        .featureRows {
-          display: grid;
-          gap: 12px;
-        }
-
-        .featureRow {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-
-        .chip {
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: rgba(255,255,255,0.07);
-          border: 1px solid rgba(255,255,255,0.12);
-          color: #e0f2fe;
-        }
-
-        @media (max-width: 900px) {
-          .hero, .welcomePanel, .premiumCta {
-            grid-template-columns: 1fr;
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .featureGrid, .coachList, .testimonialSection, .helpGrid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .page {
-            padding: 16px;
-          }
-
-          .hero {
-            padding: 20px;
-          }
-
-          .buttons {
-            flex-direction: column;
-          }
-
-          .primary, .secondary {
-            width: 100%;
-          }
-        }
-      `}</style>
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <div>
+            <p className={styles.footerBrand}>MY Future AI</p>
+            <p className={styles.footerCopy}>
+              World-class AI coaching and growth systems designed for ambitious builders.
+            </p>
+          </div>
+          <nav className={styles.footerLinks} aria-label="Footer links">
+            <Link href="/pricing">Pricing</Link>
+            <Link href="/premium">Premium</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }
