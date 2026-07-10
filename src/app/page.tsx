@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Orbitron, Space_Grotesk } from "next/font/google";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./page.module.css";
 
 const orbitron = Orbitron({
@@ -88,60 +88,112 @@ const testimonials = [
   },
 ];
 
-const helpTopics = [
+const helpCenterSections = [
   {
-    title: "Account and Login Help",
-    description:
-      "Cannot sign in, reset password, or recover access? Open secure account recovery in one tap.",
-    href: "/login",
-    cta: "Fix login",
+    title: "Getting Started",
+    faqs: [
+      {
+        question: "How quickly can I start using My Future AI?",
+        answer:
+          "Most users create an account, choose a coach, and begin their first focused session in under two minutes.",
+      },
+      {
+        question: "What should I do first after signing up?",
+        answer:
+          "Start by choosing your main growth area, set one clear goal, and let the AI coach turn it into your first action plan.",
+      },
+      {
+        question: "Can I use My Future AI on mobile and desktop?",
+        answer:
+          "Yes. The platform is built to feel fast and consistent across mobile, tablet, and desktop so your progress follows you everywhere.",
+      },
+    ],
   },
   {
-    title: "Billing and Premium Access",
-    description:
-      "Need help with upgrades, billing confirmations, or premium unlock issues? Start here first.",
-    href: "/pricing",
-    cta: "Resolve billing",
+    title: "Premium",
+    faqs: [
+      {
+        question: "What unlocks with Premium?",
+        answer:
+          "Premium gives you deeper AI reasoning, advanced memory, richer analytics, specialized coaching modes, and faster response priority.",
+      },
+      {
+        question: "Will I see the Premium activation sequence every time?",
+        answer:
+          "No. The Premium unlock experience appears only the first time a user activates Premium, then future sessions go directly into the app.",
+      },
+      {
+        question: "What if my Premium access does not appear right away?",
+        answer:
+          "Billing and entitlement updates are verified securely. If access does not refresh within a moment, sign back in or contact support for a manual check.",
+      },
+    ],
   },
   {
-    title: "AI Coaching Support",
-    description:
-      "Not sure what to ask the AI? Launch guided coaching and get instant help with goals, focus, and plans.",
-    href: "/premium",
-    cta: "Open AI support",
-  },
-];
-
-const faqs = [
-  {
-    question: "How fast can I get started?",
-    answer:
-      "You can create your account in under a minute and immediately launch your first coaching session.",
-  },
-  {
-    question: "Can I use it for multiple goals?",
-    answer:
-      "Yes. You can run business, school, fitness, and personal growth tracks at the same time with separate context.",
-  },
-  {
-    question: "What does premium include?",
-    answer:
-      "Premium unlocks deeper reasoning, richer responses, advanced analytics, and enhanced personalization.",
+    title: "AI Coach",
+    faqs: [
+      {
+        question: "How does the AI coach adapt to my energy?",
+        answer:
+          "The system reads your recent tone and context, then responds with matching intensity while keeping you focused on execution and momentum.",
+      },
+      {
+        question: "Can I change how intense my coach feels?",
+        answer:
+          "Yes. In Settings you can switch between Supportive, Balanced, and Savage coaching intensity depending on how hard you want the AI to push you.",
+      },
+      {
+        question: "Will the coach keep me from getting distracted?",
+        answer:
+          "Yes. Every coach is tuned to redirect low-value detours, call out excuse patterns, and bring the conversation back to the highest-impact next step.",
+      },
+    ],
   },
   {
-    question: "Does the app remember my progress?",
-    answer:
-      "Your memory timeline stores key context so the AI can continue from where you left off.",
+    title: "Progress & Goals",
+    faqs: [
+      {
+        question: "Does My Future AI remember my goals and habits?",
+        answer:
+          "Yes. Memory and progress systems preserve the context that matters most so your coaching can build on prior sessions instead of restarting from zero.",
+      },
+      {
+        question: "Can I track multiple goals at the same time?",
+        answer:
+          "Yes. You can work across fitness, study, productivity, business, and personal growth with coaching that keeps each track organized and actionable.",
+      },
+      {
+        question: "How does the app measure momentum?",
+        answer:
+          "The platform uses streaks, mission completion, stored context, and goal-based interactions to reflect consistency and forward movement over time.",
+      },
+    ],
   },
   {
-    question: "Is this mobile-friendly?",
-    answer:
-      "Every section is optimized for desktop, tablet, and mobile with smooth, accessible interactions.",
+    title: "Account & Security",
+    faqs: [
+      {
+        question: "How is my account protected?",
+        answer:
+          "Sensitive account and Premium state changes are validated on the server, reducing the risk of client-side spoofing or unauthorized entitlement changes.",
+      },
+      {
+        question: "What if I cannot access my account?",
+        answer:
+          "Use the login and password recovery flow first. If you still cannot get in, support can help verify and restore access securely.",
+      },
+      {
+        question: "Can I update my profile and coach settings later?",
+        answer:
+          "Yes. Your Settings page lets you update your account details and coaching intensity so the product stays aligned with how you work best.",
+      },
+    ],
   },
 ];
 
 export default function HomePage() {
   const sceneRef = useRef<HTMLDivElement | null>(null);
+  const [openFaq, setOpenFaq] = useState("Getting Started-0");
 
   useEffect(() => {
     const scene = sceneRef.current;
@@ -300,58 +352,90 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className={styles.helpCenterBlock}>
-          <div className={styles.sectionHeading}>
-            <p>AI Help Center</p>
-            <h2>Get instant help for any issue with your AI Agent support box.</h2>
-          </div>
-          <p className={styles.helpCenterIntro}>
-            If anything feels blocked, this AI Help Center guides you to the fastest fix.
-            Choose your issue and jump directly to the right support flow.
-          </p>
-          <div className={styles.helpCenterGrid}>
-            {helpTopics.map((topic) => (
-              <article key={topic.title} className={styles.helpCard}>
-                <h3>{topic.title}</h3>
-                <p>{topic.description}</p>
-                <Link href={topic.href} className={styles.helpCardButton}>
-                  {topic.cta}
-                </Link>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.sectionBlock}>
-          <div className={styles.sectionHeading}>
-            <p>FAQs</p>
-            <h2>Clear answers before you launch into your next chapter.</h2>
-          </div>
-          <div className={styles.faqGrid}>
-            {faqs.map((item) => (
-              <article key={item.question} className={styles.faqCard}>
-                <h3>{item.question}</h3>
-                <p>{item.answer}</p>
-              </article>
-            ))}
-          </div>
-        </section>
       </main>
 
       <footer className={styles.footer}>
+        <div className={styles.footerGlow} aria-hidden="true" />
         <div className={styles.footerInner}>
-          <div>
-            <p className={styles.footerBrand}>MY Future AI</p>
-            <p className={styles.footerCopy}>
-              World-class AI coaching and growth systems designed for ambitious builders.
-            </p>
-          </div>
-          <nav className={styles.footerLinks} aria-label="Footer links">
-            <Link href="/pricing">Pricing</Link>
-            <Link href="/premium">Premium</Link>
-            <Link href="/privacy">Privacy</Link>
-            <Link href="/terms">Terms</Link>
-          </nav>
+          <section className={styles.helpFooter} aria-labelledby="help-center-title">
+            <div className={styles.helpFooterIntro}>
+              <div>
+                <p className={styles.footerEyebrow}>Help Center</p>
+                <h2 id="help-center-title">Answers built for a real AI growth platform.</h2>
+              </div>
+              <p className={styles.helpFooterCopy}>
+                Explore the most important questions across onboarding, Premium,
+                coaching, progress, and account protection. Everything is organized
+                to help users move fast and trust the product.
+              </p>
+            </div>
+
+            <div className={styles.helpCategoryGrid}>
+              {helpCenterSections.map((section) => (
+                <article key={section.title} className={styles.helpCategoryCard}>
+                  <h3>{section.title}</h3>
+                  <div className={styles.helpAccordionList}>
+                    {section.faqs.map((item, index) => {
+                      const faqKey = `${section.title}-${index}`;
+                      const isOpen = openFaq === faqKey;
+
+                      return (
+                        <div
+                          key={item.question}
+                          className={`${styles.helpAccordionItem} ${isOpen ? styles.helpAccordionItemOpen : ""}`}
+                        >
+                          <button
+                            type="button"
+                            className={styles.helpAccordionTrigger}
+                            aria-expanded={isOpen}
+                            onClick={() => setOpenFaq(isOpen ? "" : faqKey)}
+                          >
+                            <span>{item.question}</span>
+                            <span className={styles.helpAccordionIcon} aria-hidden="true">
+                              +
+                            </span>
+                          </button>
+                          <div className={styles.helpAccordionPanel}>
+                            <div className={styles.helpAccordionPanelInner}>
+                              <p>{item.answer}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className={styles.supportStrip}>
+              <div>
+                <p className={styles.supportLabel}>Support</p>
+                <p className={styles.supportCopy}>
+                  Users can contact support at{" "}
+                  <a href="mailto:support@myfutureai.com">support@myfutureai.com</a>.
+                </p>
+              </div>
+              <nav className={styles.footerLinks} aria-label="Footer links">
+                <Link href="/pricing">Pricing</Link>
+                <Link href="/premium">Premium</Link>
+                <Link href="/privacy">Privacy</Link>
+                <Link href="/terms">Terms</Link>
+              </nav>
+            </div>
+
+            <div className={styles.footerBrandRow}>
+              <div>
+                <p className={styles.footerBrand}>MY Future AI</p>
+                <p className={styles.footerCopy}>
+                  World-class AI coaching and growth systems designed for ambitious builders.
+                </p>
+              </div>
+              <p className={styles.footerTrustNote}>
+                Premium guidance, secure account systems, and a product experience built to feel trustworthy at scale.
+              </p>
+            </div>
+          </section>
         </div>
       </footer>
     </div>
