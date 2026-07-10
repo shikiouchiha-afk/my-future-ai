@@ -19,6 +19,9 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const coachingIntensity =
+    typeof window !== "undefined" ? window.localStorage.getItem("coachingIntensity") : null;
+
   const sendMessage = async () => {
     if (!input.trim()) return;
 
@@ -41,6 +44,7 @@ export default function Chat() {
         },
         body: JSON.stringify({
           messages: updatedMessages,
+          coachingIntensity,
         }),
       });
 

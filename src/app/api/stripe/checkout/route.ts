@@ -1,10 +1,25 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
+import { getBearerToken, getServerSupabaseClient } from "@/lib/supabaseServer";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const userId = body?.userId ?? "guest";
+    const token = getBearerToken(req);
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const supabase = getServerSupabaseClient();
+    if (!supabase) {
+      return NextResponse.json({ error: "Server is not configured" }, { status: 500 });
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authData?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = authData.user.id;
 
     const origin =
       req.headers.get("origin") ||

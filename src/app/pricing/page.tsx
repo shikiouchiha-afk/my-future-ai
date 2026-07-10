@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function PricingPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<string>("fitness");
 
@@ -19,11 +22,21 @@ export default function PricingPage() {
     try {
       setLoading(true);
 
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        alert("Please sign in first to continue checkout.");
+        router.push("/login");
+        return;
+      }
+
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          userId: "guest",
           coach: selectedCoach,
         }),
       });

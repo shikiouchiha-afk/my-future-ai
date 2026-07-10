@@ -59,7 +59,7 @@ export default function SignupPage() {
         console.error(profileError);
       }
 
-      setAuthCookies({ premium: true });
+      setAuthCookies({ premium: false, admin: false });
       router.replace("/dashboard");
     } catch (err: any) {
       setError(err.message || "Signup failed");

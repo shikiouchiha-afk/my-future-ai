@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { setAuthCookies } from "@/lib/authCookies";
+import { getPremiumStatus } from "@/lib/premiumAccess";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,7 +33,21 @@ export default function LoginPage() {
         setError("Login failed. Try again.");
         return;
       }
-      setAuthCookies({ premium: true });
+
+      const user = data.session.user;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_premium, is_admin")
+        .eq("id", user.id)
+        .single();
+
+      const premium = getPremiumStatus({
+        email: user.email,
+        profilePremium: profile?.is_premium,
+        isAdmin: profile?.is_admin,
+      });
+
+      setAuthCookies({ premium, admin: Boolean(profile?.is_admin) });
       router.replace("/dashboard");
     } catch {
       setError("Unexpected error occurred.");

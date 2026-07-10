@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [levelUp, setLevelUp] = useState(false);
   const [messagesCount, setMessagesCount] = useState(0);
   const [xpToday, setXpToday] = useState(0);
+  const [coachingIntensity, setCoachingIntensity] = useState<"supportive" | "balanced" | "savage">("balanced");
   const prevLevel = useRef(1);
 
   // ✅ ADDED SCROLL REFS
@@ -63,7 +64,25 @@ export default function Dashboard() {
       if (!data.session) {
         router.replace("/login");
       } else {
-        setUserId(data.session.user.id);
+        const user = data.session.user;
+        setUserId(user.id);
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("coaching_intensity")
+          .eq("id", user.id)
+          .single();
+
+        const intensity = profile?.coaching_intensity;
+        if (intensity === "supportive" || intensity === "balanced" || intensity === "savage") {
+          setCoachingIntensity(intensity);
+          localStorage.setItem("coachingIntensity", intensity);
+        } else {
+          const storedIntensity = localStorage.getItem("coachingIntensity");
+          if (storedIntensity === "supportive" || storedIntensity === "balanced" || storedIntensity === "savage") {
+            setCoachingIntensity(storedIntensity);
+          }
+        }
       }
     };
 
@@ -144,6 +163,8 @@ export default function Dashboard() {
       body: JSON.stringify({
         messages: newMessages.slice(-10),
         personality: getPersonality(),
+        userId,
+        coachingIntensity,
       }),
     });
 

@@ -102,6 +102,7 @@ export default function PremiumPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [connectionState, setConnectionState] = useState<"ready" | "reconnecting" | "offline">("ready");
+  const [coachingIntensity, setCoachingIntensity] = useState<"supportive" | "balanced" | "savage">("balanced");
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [draftSaved, setDraftSaved] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -189,9 +190,20 @@ export default function PremiumPage() {
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("is_premium, is_admin")
+          .select("is_premium, is_admin, coaching_intensity")
           .eq("id", user.id)
           .single();
+
+        const intensity = profile?.coaching_intensity;
+        if (intensity === "supportive" || intensity === "balanced" || intensity === "savage") {
+          setCoachingIntensity(intensity);
+          localStorage.setItem("coachingIntensity", intensity);
+        } else {
+          const storedIntensity = localStorage.getItem("coachingIntensity");
+          if (storedIntensity === "supportive" || storedIntensity === "balanced" || storedIntensity === "savage") {
+            setCoachingIntensity(storedIntensity);
+          }
+        }
 
         const premium = getPremiumStatus({
           email: user.email,
@@ -317,6 +329,7 @@ export default function PremiumPage() {
           isPremium,
           userId,
           memorySummary,
+          coachingIntensity,
         }),
       });
 

@@ -8,6 +8,8 @@ type ChatMessage = {
 };
 
 type ExpertMode = "therapist" | "business" | "goal" | "study" | "fitness" | "productivity";
+type EnergyStyle = "calm" | "neutral" | "intense";
+type CoachingIntensity = "supportive" | "balanced" | "savage";
 
 const LEAK_PATTERNS: RegExp[] = [
   /IMPORTANT IDENTITY RULE:/gi,
@@ -114,6 +116,65 @@ function buildRecentContext(messages: ChatMessage[]) {
   };
 }
 
+function inferEnergyStyle(messages: ChatMessage[]): EnergyStyle {
+  const userMessages = messages.filter((m) => m.role === "user");
+  const latest = userMessages[userMessages.length - 1]?.content || "";
+  if (!latest) {
+    return "neutral";
+  }
+
+  const exclamations = (latest.match(/!/g) || []).length;
+  const uppercaseRuns = (latest.match(/[A-Z]{4,}/g) || []).length;
+  const strongWords = /let's go|lock in|beast|grind|push|attack|now|immediately/i.test(latest);
+  const lowEnergyWords = /tired|drained|stuck|lost|overwhelmed|not sure|idk|don't know/i.test(latest);
+
+  if (exclamations >= 2 || uppercaseRuns > 0 || strongWords) {
+    return "intense";
+  }
+
+  if (lowEnergyWords) {
+    return "calm";
+  }
+
+  return "neutral";
+}
+
+function detectSlacking(messages: ChatMessage[]) {
+  const recentUserText = messages
+    .filter((m) => m.role === "user")
+    .slice(-4)
+    .map((m) => m.content.toLowerCase())
+    .join(" \n ");
+
+  if (!recentUserText) {
+    return false;
+  }
+
+  return /skip|slack|lazy|procrastinat|later|tomorrow|didn't|did not|can't focus|off track|avoid/i.test(
+    recentUserText
+  );
+}
+
+function energyInstructions(style: EnergyStyle) {
+  if (style === "intense") {
+    return "Mirror the user's high energy with direct, powerful language while staying respectful and practical.";
+  }
+  if (style === "calm") {
+    return "Use steady, grounded language and lift the user's energy with clear confidence and supportive structure.";
+  }
+  return "Match the user's tone naturally: confident, focused, and action-oriented.";
+}
+
+function intensityInstructions(intensity: CoachingIntensity) {
+  if (intensity === "supportive") {
+    return "Tone: supportive and encouraging first, then direct. Keep accountability clear but compassionate.";
+  }
+  if (intensity === "savage") {
+    return "Tone: very direct, hard accountability, no coddling. Challenge excuses immediately and demand concrete action, while staying respectful and never abusive.";
+  }
+  return "Tone: balanced. Mix support with firm accountability and clear execution steps.";
+}
+
 function modeInstructions(modes: ExpertMode[]) {
   const parts: string[] = [];
 
@@ -159,8 +220,22 @@ function buildSystemPrompt(options: {
   isPremium?: boolean;
   modes: ExpertMode[];
   context: ReturnType<typeof buildRecentContext>;
+  userEnergy: EnergyStyle;
+  slackingDetected: boolean;
+  coachingIntensity: CoachingIntensity;
 }) {
-  const { coachTitle, coachPrompt, memorySummary, goal, isPremium, modes, context } = options;
+  const {
+    coachTitle,
+    coachPrompt,
+    memorySummary,
+    goal,
+    isPremium,
+    modes,
+    context,
+    userEnergy,
+    slackingDetected,
+    coachingIntensity,
+  } = options;
 
   const premiumRules = isPremium
     ? [
@@ -225,6 +300,22 @@ Response framework:
 
 Mode tuning:
 ${premiumRules}
+
+Energy alignment:
+- ${energyInstructions(userEnergy)}
+
+Coaching intensity:
+- ${intensityInstructions(coachingIntensity)}
+
+Distraction control and accountability:
+- Keep the user focused on the core goal. If they drift, redirect them to the next high-impact action.
+- Do not entertain unproductive detours. Acknowledge briefly, then bring focus back to execution.
+- When slacking or excuse-making is detected, call it out clearly and firmly, then give an immediate corrective action.
+- For fitness coaching specifically, when slacking is detected, explicitly remind them that repeated skipped effort makes them weaker.
+- Never be abusive or insulting. Be firm, direct, and respectful.
+
+Current accountability state:
+- Slacking signals detected: ${slackingDetected ? "yes" : "no"}
 `.trim();
 }
 
@@ -255,6 +346,7 @@ export async function POST(req: Request) {
       goal,
       userId,
       memorySummary,
+      coachingIntensity,
     }: {
       messages: ChatMessage[];
       coach?: string;
@@ -262,6 +354,7 @@ export async function POST(req: Request) {
       goal?: string | null;
       userId?: string;
       memorySummary?: string;
+      coachingIntensity?: CoachingIntensity;
     } = await req.json();
 
     const profile = getCoachProfile(coach);
@@ -295,6 +388,14 @@ export async function POST(req: Request) {
       isPremium,
       modes,
       context,
+      userEnergy: inferEnergyStyle(normalizedMessages),
+      slackingDetected: detectSlacking(normalizedMessages),
+      coachingIntensity:
+        coachingIntensity === "supportive" ||
+        coachingIntensity === "balanced" ||
+        coachingIntensity === "savage"
+          ? coachingIntensity
+          : "balanced",
     });
 
     if (!process.env.GROQ_API_KEY) {
