@@ -69,17 +69,20 @@ function rewardXP(goal: string | null) {
   return 11;
 }
 
-function generateMission(goal: string | null) {
+function generateMission(coach: string | null) {
   const missions: Record<string, string> = {
-    fitness: "Do 10 pushups right now.",
-    money: "Write 1 way to make money today.",
-    study: "Study focused for 15 minutes.",
-    mindset: "Write 3 goals for your life.",
+    business: "Create one business action that moves you closer to growth today.",
+    fitness: "Complete one workout or health action today.",
+    study: "Study one important concept for 15 minutes today.",
+    mindset: "Take one action that builds discipline and confidence today.",
+    therapist: "Take a moment to reflect on your thoughts and feelings today.",
+    productivity: "Complete your most important task today.",
+    life: "Take one meaningful step toward improving your life today.",
+    free: "Take one action that moves you forward today.",
   };
 
-  return missions[goal || ""] || "Stay consistent today.";
+  return missions[coach || ""] || "Stay consistent today.";
 }
-
 export default function PremiumPage() {
   const router = useRouter();
 
@@ -272,16 +275,26 @@ export default function PremiumPage() {
     setCoach(selectedCoach);
     setStep("app");
 
-    const coachProfile = getCoachProfile(selectedCoach);
-    const mission = selectedGoal === "fitness"
-      ? "Train with focus for 20 minutes today."
-      : selectedGoal === "money"
-      ? "Create one clear money move today."
-      : selectedGoal === "study"
-      ? "Study with intention for 20 minutes today."
-      : "Define one meaningful action that moves your life forward today.";
+   const coachProfile = getCoachProfile(selectedCoach);
 
-    const welcomeMessage = `${getCoachOpeningMessage(selectedCoach, selectedGoal)}\n\n🔥 Mission: ${mission}\n🎯 Daily goal: ${generateMission(selectedGoal)}`;
+const mission =
+  coachProfile.key === "business"
+    ? "Create one clear business action today."
+    : coachProfile.key === "fitness"
+    ? "Complete one fitness action that improves your health today."
+    : coachProfile.key === "study"
+    ? "Study one important concept for 20 minutes today."
+    : coachProfile.key === "therapist"
+    ? "Take one moment today to reflect and care for your mental wellbeing."
+    : coachProfile.key === "productivity"
+    ? "Complete your most important task today."
+    : coachProfile.key === "mindset"
+    ? "Do one action today that builds discipline and confidence."
+    : coachProfile.key === "life"
+    ? "Take one meaningful step toward improving your life today."
+    : "Complete one action that moves you forward today.";
+
+    const welcomeMessage = `${getCoachOpeningMessage(selectedCoach, selectedGoal)}\n\n🔥 Mission: ${mission}\n🎯 Daily goal: ${generateMission(selectedCoach)}`;
     setMessages([{ role: "assistant", content: welcomeMessage }]);
 
     if (userId) {
@@ -352,7 +365,7 @@ export default function PremiumPage() {
           window.clearInterval(interval);
           setIsTyping(false);
           setIsStreaming(false);
-          setXp((current) => current + rewardXP(goal));
+          setXp((current) => current + rewardXPrewardXP(coach));
           setCompletedMissionCount((current) => current + 1);
 
           if (userId) {
@@ -438,73 +451,196 @@ export default function PremiumPage() {
     return <div className="status">Checking premium access...</div>;
   }
 
-  if (step === "onboarding") {
-    return (
-      <div className="onboardPage" style={{ background: `linear-gradient(135deg, ${activeTheme.shell}, #140c2d 45%, #0f172a 100%)` }}>
-        <div className="onboardCard">
-          <div className="badge">Premium coaching suite</div>
-          <h1>Choose your next growth path</h1>
-          <p>Select a coach and a focus area to start your premium experience.</p>
+ if (step === "onboarding") {
+  return (
+    <div
+      className="onboardPage"
+      style={{
+        background: `
+        radial-gradient(circle at top, rgba(34,211,238,.25), transparent 35%),
+        linear-gradient(135deg, ${activeTheme.shell}, #082f49 45%, #020617 100%)
+        `,
+      }}
+    >
+      <div className="oceanGlow" />
 
-          <div className="goalGrid">
-            <button onClick={() => startGoal("fitness", "fitness")}>💪 Fitness</button>
-            <button onClick={() => startGoal("money", "business")}>💰 Business</button>
-            <button onClick={() => startGoal("study", "study")}>📚 Study</button>
-            <button onClick={() => startGoal("mindset", "mindset")}>🧠 Mindset</button>
-            <button onClick={() => startGoal(null, "life")}>🌱 Life</button>
-            <button onClick={() => startGoal(null, "therapist")}>🧘 Wellness</button>
-            <button onClick={() => startGoal(null, "productivity")}>⚡ Productivity</button>
-            <button onClick={() => startGoal(null, "free")}>🌌 General</button>
-          </div>
+      <div className="onboardCard">
+        <div className="badge">🌊 Premium AI Coaching Suite</div>
+
+        <h1>Choose Your AI Coach</h1>
+
+        <p>
+          Your future starts with the right guide.
+          <br />
+          Pick the AI coach that matches your mission.
+        </p>
+
+        <div className="coachGrid">
+          <button onClick={() => startGoal("fitness", "fitness")}>
+            <span>💪</span>
+            <h2>Fitness Coach</h2>
+            <p>Build strength, nutrition, discipline, and a healthier lifestyle.</p>
+            <b>Start Coaching →</b>
+          </button>
+
+          <button onClick={() => startGoal("money", "business")}>
+            <span>💰</span>
+            <h2>Business Coach</h2>
+            <p>Build companies, learn marketing, sales, and grow revenue.</p>
+            <b>Start Coaching →</b>
+          </button>
+
+          <button onClick={() => startGoal("study", "study")}>
+            <span>📚</span>
+            <h2>Study Coach</h2>
+            <p>Learn faster, understand concepts, and improve your grades.</p>
+            <b>Start Coaching →</b>
+          </button>
+
+          <button onClick={() => startGoal("mindset", "mindset")}>
+            <span>🧠</span>
+            <h2>Mindset Coach</h2>
+            <p>Build confidence, discipline, and mental toughness.</p>
+            <b>Start Coaching →</b>
+          </button>
+
+          <button onClick={() => startGoal(null, "life")}>
+            <span>🌱</span>
+            <h2>Life Coach</h2>
+            <p>Improve habits, purpose, decisions, and balance.</p>
+            <b>Start Coaching →</b>
+          </button>
+
+          <button onClick={() => startGoal(null, "therapist")}>
+  <span>🧘</span>
+  <h2>Therapist Coach</h2>
+  <p>
+    Understand your thoughts, manage emotions, and build a healthier mindset.
+  </p>
+  <b>Start Coaching →</b>
+</button>
+
+          <button onClick={() => startGoal(null, "productivity")}>
+            <span>⚡</span>
+            <h2>Productivity Coach</h2>
+            <p>Plan better, focus deeper, and execute your goals.</p>
+            <b>Start Coaching →</b>
+          </button>
+
+          <button onClick={() => startGoal(null, "free")}>
+            <span>🌌</span>
+            <h2>General Coach</h2>
+            <p>A balanced AI guide for everyday growth.</p>
+            <b>Start Coaching →</b>
+          </button>
         </div>
-
-        <style jsx>{`
-          .onboardPage {
-              min-height: 100dvh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-              padding: calc(16px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
-            background: linear-gradient(135deg, #04030b, #140c2d 45%, #0f172a 100%);
-            color: white;
-          }
-          .onboardCard {
-            width: min(820px, 100%);
-            padding: 28px;
-            border-radius: 24px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.12);
-            box-shadow: 0 24px 80px rgba(0,0,0,0.28);
-          }
-          .badge {
-            display: inline-block;
-            padding: 7px 12px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.08);
-            margin-bottom: 12px;
-            color: #d8b4fe;
-          }
-          .goalGrid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 16px;
-          }
-          button {
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 14px;
-            padding: 12px 14px;
-            background: rgba(255,255,255,0.06);
-            color: white;
-            cursor: pointer;
-          }
-          @media (max-width: 640px) {
-            .goalGrid { grid-template-columns: 1fr; }
-          }
-        `}</style>
       </div>
-    );
-  }
+
+      <style jsx>{`
+        .onboardPage {
+          min-height: 100dvh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          padding:30px 16px;
+          color:white;
+          position:relative;
+          overflow:hidden;
+        }
+
+        .oceanGlow {
+          position:absolute;
+          width:500px;
+          height:500px;
+          background:#22d3ee;
+          filter:blur(180px);
+          opacity:.18;
+        }
+
+        .onboardCard {
+          position:relative;
+          z-index:2;
+          width:min(1100px,100%);
+          padding:35px;
+          border-radius:32px;
+          background:rgba(255,255,255,.07);
+          backdrop-filter:blur(25px);
+          border:1px solid rgba(255,255,255,.15);
+          box-shadow:0 30px 100px rgba(0,0,0,.45);
+          text-align:center;
+        }
+
+        .badge {
+          display:inline-block;
+          padding:8px 16px;
+          border-radius:999px;
+          background:rgba(34,211,238,.15);
+          color:#67e8f9;
+          margin-bottom:15px;
+        }
+
+        h1 {
+          font-size:clamp(2rem,5vw,3rem);
+          margin:10px 0;
+        }
+
+        .onboardCard > p {
+          color:#cbd5e1;
+          line-height:1.6;
+        }
+
+        .coachGrid {
+          margin-top:30px;
+          display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+          gap:18px;
+        }
+
+        button {
+          text-align:left;
+          padding:22px;
+          border-radius:24px;
+          border:1px solid rgba(255,255,255,.15);
+          background:rgba(255,255,255,.06);
+          color:white;
+          cursor:pointer;
+          transition:.3s;
+        }
+
+        button:hover {
+          transform:translateY(-8px);
+          border-color:#22d3ee;
+          box-shadow:0 20px 50px rgba(34,211,238,.25);
+        }
+
+        button span {
+          font-size:2.5rem;
+        }
+
+        h2 {
+          margin:12px 0 8px;
+        }
+
+        button p {
+          color:#cbd5e1;
+          line-height:1.5;
+        }
+
+        button b {
+          color:#67e8f9;
+          display:block;
+          margin-top:15px;
+        }
+
+        @media(max-width:640px){
+          .onboardCard {
+            padding:20px;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
 
   return (
     <div className="page" style={{ background: `radial-gradient(circle at top, ${activeTheme.glow}, transparent 30%), linear-gradient(135deg, ${activeTheme.shell}, #04030b 55%, #020617 100%)` }}>

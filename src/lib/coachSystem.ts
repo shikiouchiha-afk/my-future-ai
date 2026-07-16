@@ -9,6 +9,7 @@ export type CoachKey =
   | "free";
 
 export interface CoachMemory {
+  coachKey: CoachKey;
   goals: string[];
   strengths: string[];
   weaknesses: string[];
@@ -18,7 +19,6 @@ export interface CoachMemory {
   lastFocus?: string;
   plans: string[];
 }
-
 export interface CoachProfile {
   key: CoachKey;
   title: string;
