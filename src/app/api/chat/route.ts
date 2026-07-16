@@ -7,10 +7,16 @@ type ChatMessage = {
   content: string;
 };
 
-type ExpertMode = "therapist" | "business" | generateMission(coach) | "study" | "fitness" | "productivity";
-type EnergyStyle = "calm" | "neutral" | "intense";
-type CoachingIntensity = "supportive" | "balanced" | "savage";
+type ExpertMode =
+  | "therapist"
+  | "business"
+  | "study"
+  | "fitness"
+  | "productivity";
 
+type EnergyStyle = "calm" | "neutral" | "intense";
+
+type CoachingIntensity = "supportive" | "balanced" | "savage";
 const LEAK_PATTERNS: RegExp[] = [
   /IMPORTANT IDENTITY RULE:/gi,
   /Premium Mode:/gi,
