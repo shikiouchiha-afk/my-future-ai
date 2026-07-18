@@ -254,16 +254,17 @@ export default function PremiumPage() {
     const loadMemory = async () => {
       const record = await loadCoachMemory(userId, coach);
       if (record) {
-        setMemory({
-          goals: record.goals || [],
-          strengths: record.strengths || [],
-          weaknesses: record.weaknesses || [],
-          milestones: record.milestones || [],
-          habits: record.habits || [],
-          achievements: record.achievements || [],
-          lastFocus: record.last_focus || undefined,
-          plans: record.plans || [],
-        });
+setMemory({
+  coachKey: coach as CoachKey,
+  goals: record.goals || [],
+  strengths: record.strengths || [],
+  weaknesses: record.weaknesses || [],
+  milestones: record.milestones || [],
+  habits: record.habits || [],
+  achievements: record.achievements || [],
+  lastFocus: record.last_focus || undefined,
+  plans: record.plans || [],
+});
       }
     };
 
