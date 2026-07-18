@@ -367,7 +367,7 @@ const mission =
           window.clearInterval(interval);
           setIsTyping(false);
           setIsStreaming(false);
-          setXp((current) => current + rewardXPrewardXP(coach));
+          setXp((current) => current + rewardXP(coach));
           setCompletedMissionCount((current) => current + 1);
 
           if (userId) {
