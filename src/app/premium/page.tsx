@@ -371,16 +371,17 @@ const mission =
           setCompletedMissionCount((current) => current + 1);
 
           if (userId) {
-            const nextMemory: CoachMemory = {
-              goals: [...(memory?.goals || []), text],
-              strengths: memory?.strengths || ["Consistency"],
-              weaknesses: memory?.weaknesses || ["Overwhelm"],
-              milestones: memory?.milestones || [],
-              habits: [...(memory?.habits || []), "Responded to coaching prompt"],
-              achievements: memory?.achievements || [],
-              lastFocus: text,
-              plans: [...(memory?.plans || []), text],
-            };
+           const nextMemory: CoachMemory = {
+  coachKey: (coach || "free") as CoachKey,
+  goals: [...(memory?.goals || []), text],
+  strengths: memory?.strengths || ["Consistency"],
+  weaknesses: memory?.weaknesses || ["Overwhelm"],
+  milestones: memory?.milestones || [],
+  habits: [...(memory?.habits || []), "Responded to coaching prompt"],
+  achievements: memory?.achievements || [],
+  lastFocus: text,
+  plans: [...(memory?.plans || []), text],
+};
             setMemory(nextMemory);
             void saveCoachMemory(userId, coach || "free", {
               goals: nextMemory.goals.slice(0, 6),

@@ -8,17 +8,17 @@ export type CoachKey =
   | "productivity"
   | "free";
 
-export interface CoachMemory {
-  coachKey: CoachKey;
-  goals: string[];
-  strengths: string[];
-  weaknesses: string[];
-  milestones: string[];
-  habits: string[];
-  achievements: string[];
-  lastFocus?: string;
-  plans: string[];
-}
+const nextMemory: CoachMemory = {
+  coachKey: (coach || "free") as CoachKey,
+  goals: [...(memory?.goals || []), text],
+  strengths: memory?.strengths || ["Consistency"],
+  weaknesses: memory?.weaknesses || ["Overwhelm"],
+  milestones: memory?.milestones || [],
+  habits: [...(memory?.habits || []), "Responded to coaching prompt"],
+  achievements: memory?.achievements || [],
+  lastFocus: text,
+  plans: [...(memory?.plans || []), text],
+};
 export interface CoachProfile {
   key: CoachKey;
   title: string;
