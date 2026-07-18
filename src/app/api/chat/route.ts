@@ -12,7 +12,8 @@ type ExpertMode =
   | "business"
   | "study"
   | "fitness"
-  | "productivity";
+  | "productivity"
+  | "goal";
 
 type EnergyStyle = "calm" | "neutral" | "intense";
 
