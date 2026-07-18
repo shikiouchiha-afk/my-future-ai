@@ -8,7 +8,8 @@ import {
   buildMemorySummary,
   getCoachOpeningMessage,
   getCoachProfile,
-  type CoachMemory,
+ type CoachMemory,
+type CoachKey,
 } from "@/lib/coachSystem";
 import {
   loadCoachMemory,
