@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCoachProfile } from "@/lib/coachSystem";
 import { loadCoachMemory } from "@/lib/coachMemory";
+import { createClient } from "@supabase/supabase-js";
 
 // ============ RATE LIMITING ============
 // Simple in-memory rate limiter: 10 requests per minute per IP
@@ -484,6 +485,51 @@ export async function POST(req: Request) {
     }
 
     safeReply = ensureActionableEnding(safeReply, goal);
+
+    // Update user streak if userId provided
+    if (userId) {
+      try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        
+        if (supabaseUrl && supabaseKey) {
+          const supabase = createClient(supabaseUrl, supabaseKey);
+          
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('streak, last_message_date')
+            .eq('id', userId)
+            .single();
+
+          if (profile) {
+            const now = new Date();
+            const lastMessageDate = profile.last_message_date ? new Date(profile.last_message_date) : null;
+            let newStreak = profile.streak || 0;
+
+            if (lastMessageDate) {
+              const timeDiffHours = (now.getTime() - lastMessageDate.getTime()) / (1000 * 60 * 60);
+              if (timeDiffHours >= 24 && timeDiffHours < 48) {
+                newStreak += 1;
+              } else if (timeDiffHours >= 48) {
+                newStreak = 1;
+              }
+            } else {
+              newStreak = 1;
+            }
+
+            await supabase
+              .from('profiles')
+              .update({
+                streak: newStreak,
+                last_message_date: now.toISOString(),
+              })
+              .eq('id', userId);
+          }
+        }
+      } catch (error) {
+        console.error('Streak update error:', error);
+      }
+    }
 
     return NextResponse.json({
       reply: safeReply || "No response",

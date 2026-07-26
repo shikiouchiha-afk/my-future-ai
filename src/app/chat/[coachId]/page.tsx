@@ -55,12 +55,18 @@ export default function CoachChat() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('coaching_intensity')
+          .select('coaching_intensity, xp')
           .eq('id', data.session.user.id)
           .single();
 
-        if (profile?.coaching_intensity) {
-          setCoachingIntensity(profile.coaching_intensity);
+        if (profile) {
+          if (profile.coaching_intensity) {
+            setCoachingIntensity(profile.coaching_intensity);
+          }
+          // Load real XP from database
+          if (profile.xp !== null) {
+            setXp(profile.xp);
+          }
         }
       }
     };
@@ -112,12 +118,21 @@ export default function CoachChat() {
     setMessages(updatedMessages);
 
     const earnedXp = calculateXP(input);
-    setXp((prev) => prev + earnedXp);
+    const newXp = xp + earnedXp;
+    setXp(newXp);
 
     setInput('');
     setLoading(true);
 
     try {
+      // Update XP in database
+      if (userId) {
+        await supabase
+          .from('profiles')
+          .update({ xp: newXp })
+          .eq('id', userId);
+      }
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

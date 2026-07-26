@@ -47,13 +47,22 @@ export default function Dashboard() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('coaching_intensity')
+          .select('coaching_intensity, streak, xp')
           .eq('id', data.session.user.id)
           .single();
 
-        if (profile?.coaching_intensity) {
-          setCoachingIntensity(profile.coaching_intensity);
-          localStorage.setItem('coachingIntensity', profile.coaching_intensity);
+        if (profile) {
+          if (profile.coaching_intensity) {
+            setCoachingIntensity(profile.coaching_intensity);
+            localStorage.setItem('coachingIntensity', profile.coaching_intensity);
+          }
+          // Load real streak and XP from database
+          if (profile.streak !== null) {
+            setStreak(profile.streak);
+          }
+          if (profile.xp !== null) {
+            setXp(profile.xp);
+          }
         }
       }
     };
@@ -108,12 +117,21 @@ export default function Dashboard() {
     setMessages(updatedMessages);
 
     const earnedXp = calculateXP(input);
-    setXp((prev) => prev + earnedXp);
+    const newXp = xp + earnedXp;
+    setXp(newXp);
 
     setInput('');
     setLoading(true);
 
     try {
+      // Update XP in database
+      if (userId) {
+        await supabase
+          .from('profiles')
+          .update({ xp: newXp })
+          .eq('id', userId);
+      }
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
