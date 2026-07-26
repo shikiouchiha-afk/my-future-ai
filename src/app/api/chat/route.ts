@@ -2,6 +2,35 @@ import { NextResponse } from "next/server";
 import { getCoachProfile } from "@/lib/coachSystem";
 import { loadCoachMemory } from "@/lib/coachMemory";
 
+// ============ RATE LIMITING ============
+// Simple in-memory rate limiter: 10 requests per minute per IP
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 10;
+
+function getRateLimitKey(req: Request): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  return forwarded ? forwarded.split(',')[0].trim() : 'unknown-ip';
+}
+
+function checkRateLimit(key: string): { allowed: boolean } {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return { allowed: true };
+  }
+
+  if (record.count < MAX_REQUESTS_PER_WINDOW) {
+    record.count++;
+    return { allowed: true };
+  }
+
+  return { allowed: false };
+}
+// ============ END RATE LIMITING ============
+
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
@@ -346,6 +375,18 @@ function ensureActionableEnding(reply: string, goal?: string | null) {
 
 export async function POST(req: Request) {
   try {
+    // Rate limit check
+    const rateLimitKey = getRateLimitKey(req);
+    const { allowed } = checkRateLimit(rateLimitKey);
+    
+    if (!allowed) {
+      console.warn(`[Rate Limit] Exceeded for IP ${rateLimitKey}`);
+      return NextResponse.json(
+        { reply: "Too many requests. Please wait a moment before trying again.", error: "rate_limit" },
+        { status: 429 }
+      );
+    }
+
     const {
       messages,
       coach,

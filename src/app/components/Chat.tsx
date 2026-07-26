@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ErrorBoundary } from "@/lib/errorBoundary";
 
 type Message = {
   role: "user" | "assistant";
@@ -71,48 +72,50 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-[700px]">
-      {/* MESSAGES */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`max-w-[75%] px-4 py-3 rounded-xl text-sm ${
-              m.role === "user"
-                ? "ml-auto bg-indigo-500/20 border border-indigo-400/20"
-                : "bg-white/5 border border-white/10"
-            }`}
+    <ErrorBoundary>
+      <div className="flex flex-col h-[700px]">
+        {/* MESSAGES */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`max-w-[75%] px-4 py-3 rounded-xl text-sm ${
+                m.role === "user"
+                  ? "ml-auto bg-indigo-500/20 border border-indigo-400/20"
+                  : "bg-white/5 border border-white/10"
+              }`}
+            >
+              {m.content}
+            </div>
+          ))}
+
+          {loading && (
+            <div className="bg-white/5 border border-white/10 px-4 py-3 rounded-xl w-fit animate-pulse">
+              AI is thinking...
+            </div>
+          )}
+        </div>
+
+        {/* INPUT */}
+        <div className="border-t border-white/10 p-4 flex gap-3">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Message My Future AI..."
+            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none text-white"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") sendMessage();
+            }}
+          />
+
+          <button
+            onClick={sendMessage}
+            className="px-6 py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 transition"
           >
-            {m.content}
-          </div>
-        ))}
-
-        {loading && (
-          <div className="bg-white/5 border border-white/10 px-4 py-3 rounded-xl w-fit animate-pulse">
-            AI is thinking...
-          </div>
-        )}
+            Send
+          </button>
+        </div>
       </div>
-
-      {/* INPUT */}
-      <div className="border-t border-white/10 p-4 flex gap-3">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Message My Future AI..."
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none text-white"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") sendMessage();
-          }}
-        />
-
-        <button
-          onClick={sendMessage}
-          className="px-6 py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 transition"
-        >
-          Send
-        </button>
-      </div>
-    </div>
+    </ErrorBoundary>
   );
 }
