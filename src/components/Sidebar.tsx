@@ -2,17 +2,17 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 const navItems = [
-  { icon: '🎮', label: 'Engine Dashboard', href: '/dashboard', active: true },
-  { icon: '💬', label: 'Coaching Center', href: '/premium', active: false },
-  { icon: '🤖', label: 'AI Chat', href: '/dashboard', active: false },
-  { icon: '📊', label: 'My Progress', href: '/dashboard', active: false },
-  { icon: '📈', label: 'Analytics', href: '/dashboard', active: false },
-  { icon: '🎯', label: 'Goals', href: '/dashboard', active: false },
-  { icon: '⚙️', label: 'Habits', href: '/dashboard', active: false },
-  { icon: '📅', label: 'Calendar', href: '/dashboard', active: false },
+  { icon: '🎮', label: 'Engine Dashboard', href: '/dashboard' },
+  { icon: '💬', label: 'Coaching Center', href: '/coaching-center' },
+  { icon: '🤖', label: 'AI Chat', href: '/dashboard' },
+  { icon: '📊', label: 'My Progress', href: '/progress' },
+  { icon: '📈', label: 'Analytics', href: '/analytics' },
+  { icon: '🎯', label: 'Goals', href: '/goals' },
+  { icon: '⚙️', label: 'Habits', href: '/habits' },
+  { icon: '📅', label: 'Calendar', href: '/calendar' },
 ];
 
 const bottomItems = [
@@ -21,6 +21,8 @@ const bottomItems = [
 ];
 
 export function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <div className="h-screen w-64 bg-white/5 backdrop-blur-md border-r border-white/10 flex flex-col overflow-hidden">
       {/* Logo / Header */}
@@ -36,24 +38,27 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4 space-y-2">
-        {navItems.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={`
-              flex items-center gap-3 px-4 py-3 rounded-xl
-              transition-all duration-300
-              ${
-                item.active
-                  ? 'bg-gradient-to-r from-purple-500/30 to-cyan-500/30 border border-purple-500/50 text-white'
-                  : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10'
-              }
-            `}
-          >
-            <span className="text-lg flex-shrink-0">{item.icon}</span>
-            <span className="text-sm font-medium">{item.label}</span>
-          </Link>
-        ))}
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl
+                transition-all duration-300
+                ${
+                  isActive
+                    ? 'bg-gradient-to-r from-purple-500/30 to-cyan-500/30 border border-purple-500/50 text-white'
+                    : 'text-white/60 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10'
+                }
+              `}
+            >
+              <span className="text-lg flex-shrink-0">{item.icon}</span>
+              <span className="text-sm font-medium">{item.label}</span>
+            </Link>
+          );
+        })}
       </nav>
 
       {/* Bottom Items */}

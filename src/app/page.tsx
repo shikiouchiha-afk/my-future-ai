@@ -1,448 +1,232 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Orbitron, Space_Grotesk } from "next/font/google";
-import { useEffect, useRef, useState } from "react";
-import styles from "./page.module.css";
+import Link from 'next/link';
+import { useEffect, useRef } from 'react';
 
-const orbitron = Orbitron({
-  subsets: ["latin"],
-  weight: ["700", "800"],
-  variable: "--font-display",
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-body",
-});
-
-const coreFeatures = [
-  {
-    title: "AI Coaching",
-    description:
-      "Switch between specialized coaches for mindset, productivity, business, and high-performance habits.",
-  },
-  {
-    title: "Goal Tracking",
-    description:
-      "Set strategic milestones, break them into executable steps, and monitor completion velocity in real time.",
-  },
-  {
-    title: "Habit Building",
-    description:
-      "Build streaks, reinforce consistency, and lock in routines with daily mission loops and feedback.",
-  },
-  {
-    title: "School Assistance",
-    description:
-      "Get structured study plans, clarity on difficult topics, and exam readiness support tailored to your level.",
-  },
-  {
-    title: "Fitness Guidance",
-    description:
-      "Use training logic, recovery pacing, and accountability cues that keep performance steady week after week.",
-  },
-  {
-    title: "Trading Support",
-    description:
-      "Track discipline, evaluate setups, and improve decision quality with risk-aware, process-focused coaching.",
-  },
-  {
-    title: "Live Analytics",
-    description:
-      "Visualize progress metrics, trend lines, and behavior patterns to optimize momentum and outcomes.",
-  },
-  {
-    title: "Coach Intelligence Engine",
-    description:
-      "Operate a deeply personalized coaching engine with long-term memory, dynamic missions, and accountable progress loops.",
-  },
-];
-
-const engineHighlights = [
-  "Adaptive memory that gets sharper every session",
-  "Personalized coaching tone based on your goal context",
-  "Instant dashboard insights for daily decision quality",
-  "Mission-based progression with streak reinforcement",
-];
-
-const testimonials = [
-  {
-    quote:
-      "The coaching quality feels elite. It turns overwhelming goals into a crystal-clear execution plan.",
-    person: "Arielle N.",
-    role: "Founder",
-  },
-  {
-    quote:
-      "My routines finally became automatic. The habit system and weekly review flow changed everything.",
-    person: "Marcus L.",
-    role: "Athlete",
-  },
-  {
-    quote:
-      "It feels like a command center for growth, not another chatbot. Premium quality from top to bottom.",
-    person: "Rina K.",
-    role: "Product Lead",
-  },
-];
-
-const helpCenterSections = [
-  {
-    title: "Getting Started",
-    faqs: [
-      {
-        question: "How quickly can I start using My Future AI?",
-        answer:
-          "Most users create an account, choose a coach, and begin their first focused session in under two minutes.",
-      },
-      {
-        question: "What should I do first after signing up?",
-        answer:
-          "Start by choosing your main growth area, set one clear goal, and let the AI coach turn it into your first action plan.",
-      },
-      {
-        question: "Can I use My Future AI on mobile and desktop?",
-        answer:
-          "Yes. The platform is built to feel fast and consistent across mobile, tablet, and desktop so your progress follows you everywhere.",
-      },
-    ],
-  },
-  {
-    title: "Premium",
-    faqs: [
-      {
-        question: "Why are all features currently free?",
-        answer:
-          "My Future AI is in open-access growth mode so every user can experience the full platform while we collect product feedback at scale.",
-      },
-      {
-        question: "Will billing infrastructure still exist later?",
-        answer:
-          "Yes. Stripe, subscription architecture, and premium access control remain integrated in the backend and can be re-enabled cleanly later.",
-      },
-      {
-        question: "Do I still get the full coaching system now?",
-        answer:
-          "Yes. Conversations, memory, missions, coach personas, analytics, and progress systems are available during this phase.",
-      },
-    ],
-  },
-  {
-    title: "AI Coach",
-    faqs: [
-      {
-        question: "How does the AI coach adapt to my energy?",
-        answer:
-          "The system reads your recent tone and context, then responds with matching intensity while keeping you focused on execution and momentum.",
-      },
-      {
-        question: "Can I change how intense my coach feels?",
-        answer:
-          "Yes. In Settings you can switch between Supportive, Balanced, and Savage coaching intensity depending on how hard you want the AI to push you.",
-      },
-      {
-        question: "Will the coach keep me from getting distracted?",
-        answer:
-          "Yes. Every coach is tuned to redirect low-value detours, call out excuse patterns, and bring the conversation back to the highest-impact next step.",
-      },
-    ],
-  },
-  {
-    title: "Progress & Goals",
-    faqs: [
-      {
-        question: "Does My Future AI remember my goals and habits?",
-        answer:
-          "Yes. Memory and progress systems preserve the context that matters most so your coaching can build on prior sessions instead of restarting from zero.",
-      },
-      {
-        question: "Can I track multiple goals at the same time?",
-        answer:
-          "Yes. You can work across fitness, study, productivity, business, and personal growth with coaching that keeps each track organized and actionable.",
-      },
-      {
-        question: "How does the app measure momentum?",
-        answer:
-          "The platform uses streaks, mission completion, stored context, and goal-based interactions to reflect consistency and forward movement over time.",
-      },
-    ],
-  },
-  {
-    title: "Account & Security",
-    faqs: [
-      {
-        question: "How is my account protected?",
-        answer:
-          "Sensitive account and Premium state changes are validated on the server, reducing the risk of client-side spoofing or unauthorized entitlement changes.",
-      },
-      {
-        question: "What if I cannot access my account?",
-        answer:
-          "Use the login and password recovery flow first. If you still cannot get in, support can help verify and restore access securely.",
-      },
-      {
-        question: "Can I update my profile and coach settings later?",
-        answer:
-          "Yes. Your Settings page lets you update your account details and coaching intensity so the product stays aligned with how you work best.",
-      },
-    ],
-  },
-];
-
-export default function HomePage() {
-  const sceneRef = useRef<HTMLDivElement | null>(null);
-  const [openFaq, setOpenFaq] = useState("Getting Started-0");
+export default function Home() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const scene = sceneRef.current;
-    if (!scene) {
-      return;
-    }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reducedMotion) {
-      scene.style.setProperty("--pointer-x", "0");
-      scene.style.setProperty("--pointer-y", "0");
-      return;
-    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    let raf = 0;
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
 
-    const updateParallax = (x: number, y: number) => {
-      cancelAnimationFrame(raf);
-      raf = window.requestAnimationFrame(() => {
-        scene.style.setProperty("--pointer-x", x.toFixed(3));
-        scene.style.setProperty("--pointer-y", y.toFixed(3));
+    const nodes: Array<{ x: number; y: number; vx: number; vy: number }> = [];
+    for (let i = 0; i < 20; i++) {
+      nodes.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
       });
+    }
+
+    const animate = () => {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Update and draw nodes
+      nodes.forEach((node) => {
+        node.x += node.vx;
+        node.y += node.vy;
+
+        if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
+        if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
+
+        // Draw connections
+        nodes.forEach((other) => {
+          const dx = other.x - node.x;
+          const dy = other.y - node.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 150) {
+            ctx.strokeStyle = `rgba(106, 90, 205, ${0.3 * (1 - dist / 150)})`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(node.x, node.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.stroke();
+          }
+        });
+
+        // Draw node
+        const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, 8);
+        gradient.addColorStop(0, 'rgba(0, 180, 255, 0.8)');
+        gradient.addColorStop(1, 'rgba(124, 58, 237, 0.2)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      requestAnimationFrame(animate);
     };
 
-    const onMove = (event: PointerEvent) => {
-      const rect = scene.getBoundingClientRect();
-      const normalizedX = (event.clientX - rect.left) / rect.width - 0.5;
-      const normalizedY = (event.clientY - rect.top) / rect.height - 0.5;
-      updateParallax(normalizedX, normalizedY);
+    animate();
+
+    const handleResize = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
     };
 
-    const onLeave = () => {
-      updateParallax(0, 0);
-    };
-
-    scene.addEventListener("pointermove", onMove, { passive: true });
-    scene.addEventListener("pointerleave", onLeave, { passive: true });
-
-    return () => {
-      cancelAnimationFrame(raf);
-      scene.removeEventListener("pointermove", onMove);
-      scene.removeEventListener("pointerleave", onLeave);
-    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
-    <div
-      ref={sceneRef}
-      className={`${styles.page} ${orbitron.variable} ${spaceGrotesk.variable}`}
-    >
-      <div className={styles.deepSpace} aria-hidden="true" />
-      <div className={styles.starField} aria-hidden="true" />
-      <div className={styles.nebulaLayer} aria-hidden="true" />
-      <div className={styles.particleLayer} aria-hidden="true" />
+    <div className="min-h-screen bg-black text-white overflow-hidden relative">
+      {/* Background */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-black to-slate-950" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(124,58,237,0.15)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(0,180,255,0.1)_0%,transparent_50%)]" />
+      </div>
 
-      <main className={styles.container}>
-        <section className={styles.hero}>
-          <div className={styles.heroCopy}>
-            <p className={styles.kicker}>AI Engine Growth Platform</p>
-            <h1>Become 1% Better Every Day.</h1>
-            <p className={styles.tagline}>
-              My Future AI is your intelligent personal operating system-an AI-powered
-              life engine that helps you build discipline, improve productivity,
-              strengthen your mindset, grow your business, excel in school, manage
-              your finances, develop healthier habits, and achieve long-term
-              personal growth through personalized coaching and intelligent
-              accountability.
-            </p>
-            <div className={styles.heroActions}>
-              <Link className={styles.primaryButton} href="/signup">
+      {/* Grid pattern */}
+      <div className="fixed inset-0 -z-10 opacity-5" style={{ backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(124,58,237,.1) 25%, rgba(124,58,237,.1) 26%, transparent 27%, transparent 74%, rgba(124,58,237,.1) 75%, rgba(124,58,237,.1) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(124,58,237,.1) 25%, rgba(124,58,237,.1) 26%, transparent 27%, transparent 74%, rgba(124,58,237,.1) 75%, rgba(124,58,237,.1) 76%, transparent 77%, transparent)', backgroundSize: '50px 50px' }} />
+
+      {/* Main content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 lg:py-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[calc(100vh-200px)]">
+          {/* Left side - Content */}
+          <div className="space-y-8 max-w-lg">
+            <div className="space-y-3">
+              <div className="inline-block">
+                <p className="text-xs font-bold uppercase tracking-widest text-purple-400/80 bg-purple-500/10 border border-purple-500/20 rounded-full px-4 py-2">
+                  🔧 COLD SIGNAL • AI COACHING PLATFORM
+                </p>
+              </div>
+              <h1 className="text-5xl lg:text-6xl font-bold text-white leading-tight">
+                My Future
+              </h1>
+              <p className="text-lg text-white/70 leading-relaxed">
+                A darker, cooler AI coaching system for discipline, focus, and ruthless progress in business, fitness, learning, and life.
+              </p>
+            </div>
+
+            <div className="flex gap-4">
+              <Link
+                href="/signup"
+                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-purple-500 rounded-lg font-bold text-white hover:from-purple-700 hover:to-purple-600 transition-all shadow-lg hover:shadow-purple-500/50"
+              >
                 Start Free
               </Link>
-              <Link className={styles.secondaryButton} href="/dashboard">
-                See Demo
+              <Link
+                href="/login"
+                className="px-8 py-3 bg-white/10 border border-white/20 rounded-lg font-bold text-white hover:bg-white/20 transition-all"
+              >
+                Sign In
               </Link>
             </div>
-            <div className={styles.metaRow}>
-              <span>Ultra-responsive</span>
-              <span>Adaptive coaching memory</span>
-              <span>Built for momentum</span>
-            </div>
-          </div>
 
-          <div className={styles.heroVisual} aria-hidden="true">
-            <div className={styles.brainAura} />
-            <div className={styles.brainFrame}>
-              <div className={`${styles.circuit} ${styles.circuitA}`} />
-              <div className={`${styles.circuit} ${styles.circuitB}`} />
-              <div className={`${styles.circuit} ${styles.circuitC}`} />
-              <div className={styles.brainCore} />
-              <div className={styles.neonNode} />
-              <div className={styles.neonNode} />
-              <div className={styles.neonNode} />
-              <div className={styles.neonNode} />
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.metrics}>
-          <article className={styles.metricCard}>
-            <strong>7+</strong>
-            <p>Specialized coaches for business, life, study, and performance.</p>
-          </article>
-          <article className={styles.metricCard}>
-            <strong>24/7</strong>
-            <p>Always-on guidance with context-aware recommendations.</p>
-          </article>
-          <article className={styles.metricCard}>
-            <strong>4K Ready</strong>
-            <p>Cinematic interface tuned for desktop, tablet, and mobile.</p>
-          </article>
-        </section>
-
-        <section className={styles.sectionBlock}>
-          <div className={styles.sectionHeading}>
-            <p>Core Experiences</p>
-            <h2>Everything you need to build your future in one AI workspace.</h2>
-          </div>
-          <div className={styles.featureGrid}>
-            {coreFeatures.map((item) => (
-              <article key={item.title} className={styles.featureCard}>
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.premiumPanel}>
-          <div>
-            <p className={styles.panelLabel}>AI Engine Mode</p>
-            <h2>Futuristic design meets disciplined execution intelligence.</h2>
-            <p>
-              Every interaction is tuned for clarity, measurable growth, and
-              intelligent accountability so daily action compounds into real life
-              progress.
-            </p>
-          </div>
-          <ul className={styles.highlightList}>
-            {engineHighlights.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </section>
-
-        <section className={styles.sectionBlock}>
-          <div className={styles.sectionHeading}>
-            <p>Testimonials</p>
-            <h2>Trusted by ambitious users building serious momentum.</h2>
-          </div>
-          <div className={styles.testimonialGrid}>
-            {testimonials.map((item) => (
-              <blockquote key={item.person} className={styles.quoteCard}>
-                <p>{item.quote}</p>
-                <footer>
-                  <strong>{item.person}</strong>
-                  <span>{item.role}</span>
-                </footer>
-              </blockquote>
-            ))}
-          </div>
-        </section>
-
-      </main>
-
-      <footer className={styles.footer}>
-        <div className={styles.footerGlow} aria-hidden="true" />
-        <div className={styles.footerInner}>
-          <section className={styles.helpFooter} aria-labelledby="help-center-title">
-            <div className={styles.helpFooterIntro}>
-              <div>
-                <p className={styles.footerEyebrow}>Help Center</p>
-                <h2 id="help-center-title">Answers built for a real AI growth platform.</h2>
+            <div className="flex gap-6 text-sm text-white/60">
+              <div className="flex items-center gap-2">
+                <span>⚡</span>
+                <span>Fast AI guidance</span>
               </div>
-              <p className={styles.helpFooterCopy}>
-                Explore the most important questions across onboarding, coaching,
-                progress, and account protection. Everything is organized
-                to help users move fast and trust the product.
-              </p>
-            </div>
-
-            <div className={styles.helpCategoryGrid}>
-              {helpCenterSections.map((section) => (
-                <article key={section.title} className={styles.helpCategoryCard}>
-                  <h3>{section.title}</h3>
-                  <div className={styles.helpAccordionList}>
-                    {section.faqs.map((item, index) => {
-                      const faqKey = `${section.title}-${index}`;
-                      const isOpen = openFaq === faqKey;
-
-                      return (
-                        <div
-                          key={item.question}
-                          className={`${styles.helpAccordionItem} ${isOpen ? styles.helpAccordionItemOpen : ""}`}
-                        >
-                          <button
-                            type="button"
-                            className={styles.helpAccordionTrigger}
-                            aria-expanded={isOpen}
-                            onClick={() => setOpenFaq(isOpen ? "" : faqKey)}
-                          >
-                            <span>{item.question}</span>
-                            <span className={styles.helpAccordionIcon} aria-hidden="true">
-                              +
-                            </span>
-                          </button>
-                          <div className={styles.helpAccordionPanel}>
-                            <div className={styles.helpAccordionPanelInner}>
-                              <p>{item.answer}</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <div className={styles.supportStrip}>
-              <div>
-                <p className={styles.supportLabel}>Support</p>
-                <p className={styles.supportCopy}>
-                  Users can contact support at{" "}
-                  <a href="mailto:support@myfutureai.com">support@myfutureai.com</a>.
-                </p>
+              <div className="flex items-center gap-2">
+                <span>🧠</span>
+                <span>Coach memory</span>
               </div>
-              <nav className={styles.footerLinks} aria-label="Footer links">
-                <Link href="/dashboard">Dashboard</Link>
-                <Link href="/premium">Coaches</Link>
-                <Link href="/privacy">Privacy</Link>
-                <Link href="/terms">Terms</Link>
-              </nav>
-            </div>
-
-            <div className={styles.footerBrandRow}>
-              <div>
-                <p className={styles.footerBrand}>MY Future AI</p>
-                <p className={styles.footerCopy}>
-                  World-class AI coaching and growth systems designed for ambitious builders.
-                </p>
+              <div className="flex items-center gap-2">
+                <span>📊</span>
+                <span>Responsive</span>
               </div>
-              <p className={styles.footerTrustNote}>
-                Secure account systems and a coaching experience designed to feel trustworthy at scale.
-              </p>
             </div>
-          </section>
+          </div>
+
+          {/* Right side - Neural Network Visualization */}
+          <div className="relative h-full min-h-[500px] hidden lg:flex items-center justify-center">
+            <canvas
+              ref={canvasRef}
+              className="w-full h-full absolute inset-0"
+              style={{ filter: 'drop-shadow(0 0 30px rgba(124, 58, 237, 0.3))' }}
+            />
+            <div className="relative z-10 space-y-4 text-center pointer-events-none">
+              <p className="text-xs uppercase tracking-widest text-white/40">Central Cognitive Engine</p>
+              <p className="text-sm font-bold text-white/60">Core Cortex</p>
+              <div className="space-y-2 text-xs text-white/50">
+                <p>⚙️ Active Neural Pathways</p>
+                <p>🎯 Optimal Density</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </footer>
+
+        {/* Metrics Section */}
+        <div className="mt-24 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Specialized Coaches', value: '7+' },
+            { label: 'Coach Interactions', value: '1.5K+' },
+            { label: 'Active Pathways', value: '847' },
+            { label: 'Memory Depth', value: '∞' },
+          ].map((metric, i) => (
+            <div
+              key={i}
+              className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-purple-500/30 transition-all group"
+            >
+              <p className="text-2xl lg:text-3xl font-bold text-white group-hover:text-purple-400 transition-colors">
+                {metric.value}
+              </p>
+              <p className="text-xs uppercase tracking-widest text-white/50 mt-2">{metric.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Features Grid */}
+        <div className="mt-24 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            {
+              title: 'Performance Metrics',
+              desc: 'CPU Utilization 98% | Memory Cache 99% | Model Inference Lightning',
+              icon: '📊',
+            },
+            {
+              title: 'System Status',
+              desc: 'Active coaching engines online | Predictive accuracy trending up',
+              icon: '🎯',
+            },
+            {
+              title: 'Coach Agents',
+              desc: '7 online coaches. Ready 0/disc. Light-style. Premium available.',
+              icon: '💬',
+            },
+            {
+              title: 'Premium Analytics',
+              desc: 'Iterative refinement ongoing. Dynamic optimization active.',
+              icon: '📈',
+            },
+          ].map((feature, i) => (
+            <div
+              key={i}
+              className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-cyan-500/30 transition-all"
+            >
+              <p className="text-2xl mb-2">{feature.icon}</p>
+              <p className="font-bold text-white mb-2">{feature.title}</p>
+              <p className="text-sm text-white/50">{feature.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA Section */}
+        <div className="mt-24 text-center space-y-6">
+          <h2 className="text-3xl lg:text-4xl font-bold text-white">Ready to build your future?</h2>
+          <p className="text-lg text-white/60 max-w-2xl mx-auto">
+            Get access to world-class AI coaching, habit tracking, and accountability systems—all free while we grow.
+          </p>
+          <Link
+            href="/signup"
+            className="inline-block px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-lg font-bold text-white hover:from-purple-700 hover:to-cyan-700 transition-all shadow-lg hover:shadow-purple-500/50"
+          >
+            Start Building Now →
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
