@@ -17,7 +17,6 @@ export default function Dashboard() {
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
   const [streak] = useState(0);
-  const [plan, setPlan] = useState<"basic" | "premium">("basic");
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "I am My Future 🌌 — let’s build your life." },
   ]);
@@ -44,18 +43,6 @@ export default function Dashboard() {
         behavior: "smooth",
       });
     }
-  };
-
-  const goToPricing = (event?: React.MouseEvent<HTMLButtonElement>) => {
-    event?.preventDefault();
-    event?.stopPropagation();
-
-    if (typeof window !== "undefined") {
-      window.location.assign("/pricing");
-      return;
-    }
-
-    router.push("/pricing");
   };
 
   useEffect(() => {
@@ -88,11 +75,6 @@ export default function Dashboard() {
 
     checkUser();
   }, [router]);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("plan") as "basic" | "premium" | null;
-    if (stored) setPlan(stored);
-  }, []);
 
   const xpNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
   const calculateXP = (text: string) => {
@@ -145,10 +127,6 @@ export default function Dashboard() {
 
   const sendMessage = async () => {
     if (!input.trim()) return;
-    if (plan === "basic" && level >= 50) {
-      alert("🔒 Upgrade to Premium to continue leveling.");
-      return;
-    }
 
     const userText = input.trim();
     triggerHaptic(12);
@@ -196,13 +174,7 @@ export default function Dashboard() {
           <div>🌌 My Future AI</div>
           <div className="topRight">
             <div>⭐ Level {level}</div>
-            {plan === "premium" ? (
-              <div className="premiumBadge">👑 Premium</div>
-            ) : (
-              <button type="button" className="upgradeBtn" onClick={goToPricing}>
-                Upgrade
-              </button>
-            )}
+            <div className="premiumBadge">Open Access</div>
           </div>
         </div>
 

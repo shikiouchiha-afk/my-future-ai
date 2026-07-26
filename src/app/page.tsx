@@ -54,13 +54,13 @@ const coreFeatures = [
       "Visualize progress metrics, trend lines, and behavior patterns to optimize momentum and outcomes.",
   },
   {
-    title: "Premium Systems",
+    title: "Coach Intelligence Engine",
     description:
-      "Unlock advanced insights, deeper response quality, and custom coaching depth designed for serious growth.",
+      "Operate a deeply personalized coaching engine with long-term memory, dynamic missions, and accountable progress loops.",
   },
 ];
 
-const premiumHighlights = [
+const engineHighlights = [
   "Adaptive memory that gets sharper every session",
   "Personalized coaching tone based on your goal context",
   "Instant dashboard insights for daily decision quality",
@@ -113,19 +113,19 @@ const helpCenterSections = [
     title: "Premium",
     faqs: [
       {
-        question: "What unlocks with Premium?",
+        question: "Why are all features currently free?",
         answer:
-          "Premium gives you deeper AI reasoning, advanced memory, richer analytics, specialized coaching modes, and faster response priority.",
+          "My Future AI is in open-access growth mode so every user can experience the full platform while we collect product feedback at scale.",
       },
       {
-        question: "Will I see the Premium activation sequence every time?",
+        question: "Will billing infrastructure still exist later?",
         answer:
-          "No. The Premium unlock experience appears only the first time a user activates Premium, then future sessions go directly into the app.",
+          "Yes. Stripe, subscription architecture, and premium access control remain integrated in the backend and can be re-enabled cleanly later.",
       },
       {
-        question: "What if my Premium access does not appear right away?",
+        question: "Do I still get the full coaching system now?",
         answer:
-          "Billing and entitlement updates are verified securely. If access does not refresh within a moment, sign back in or contact support for a manual check.",
+          "Yes. Conversations, memory, missions, coach personas, analytics, and progress systems are available during this phase.",
       },
     ],
   },
@@ -252,11 +252,15 @@ export default function HomePage() {
       <main className={styles.container}>
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
-            <p className={styles.kicker}>Cinematic AI Growth Platform</p>
-            <h1>MY Future AI</h1>
+            <p className={styles.kicker}>AI Engine Growth Platform</p>
+            <h1>Become 1% Better Every Day.</h1>
             <p className={styles.tagline}>
-              Design the future you want, then execute it with an intelligent system
-              that coaches your goals, habits, and momentum every day.
+              My Future AI is your intelligent personal operating system-an AI-powered
+              life engine that helps you build discipline, improve productivity,
+              strengthen your mindset, grow your business, excel in school, manage
+              your finances, develop healthier habits, and achieve long-term
+              personal growth through personalized coaching and intelligent
+              accountability.
             </p>
             <div className={styles.heroActions}>
               <Link className={styles.primaryButton} href="/signup">
@@ -320,15 +324,16 @@ export default function HomePage() {
 
         <section className={styles.premiumPanel}>
           <div>
-            <p className={styles.panelLabel}>Premium Mode</p>
-            <h2>Luxury SaaS design meets deep, practical intelligence.</h2>
+            <p className={styles.panelLabel}>AI Engine Mode</p>
+            <h2>Futuristic design meets disciplined execution intelligence.</h2>
             <p>
-              Every interaction is tuned for clarity, structure, and measurable growth
-              so your progress feels intentional, not random.
+              Every interaction is tuned for clarity, measurable growth, and
+              intelligent accountability so daily action compounds into real life
+              progress.
             </p>
           </div>
           <ul className={styles.highlightList}>
-            {premiumHighlights.map((item) => (
+            {engineHighlights.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
@@ -364,8 +369,8 @@ export default function HomePage() {
                 <h2 id="help-center-title">Answers built for a real AI growth platform.</h2>
               </div>
               <p className={styles.helpFooterCopy}>
-                Explore the most important questions across onboarding, Premium,
-                coaching, progress, and account protection. Everything is organized
+                Explore the most important questions across onboarding, coaching,
+                progress, and account protection. Everything is organized
                 to help users move fast and trust the product.
               </p>
             </div>
@@ -417,8 +422,8 @@ export default function HomePage() {
                 </p>
               </div>
               <nav className={styles.footerLinks} aria-label="Footer links">
-                <Link href="/pricing">Pricing</Link>
-                <Link href="/premium">Premium</Link>
+                <Link href="/dashboard">Dashboard</Link>
+                <Link href="/premium">Coaches</Link>
                 <Link href="/privacy">Privacy</Link>
                 <Link href="/terms">Terms</Link>
               </nav>
@@ -432,7 +437,7 @@ export default function HomePage() {
                 </p>
               </div>
               <p className={styles.footerTrustNote}>
-                Premium guidance, secure account systems, and a product experience built to feel trustworthy at scale.
+                Secure account systems and a coaching experience designed to feel trustworthy at scale.
               </p>
             </div>
           </section>

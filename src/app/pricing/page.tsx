@@ -1,105 +1,47 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 
 export default function PricingPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [selectedCoach, setSelectedCoach] = useState<string>("fitness");
-
-  const coaches = [
-    { id: "fitness", name: "💪 Fitness" },
-    { id: "business", name: "💰 Business" },
-    { id: "study", name: "📚 Study" },
-    { id: "mindset", name: "🧠 Mindset" },
-    { id: "life", name: "🌱 Life" },
-    { id: "wellness", name: "🧘 Wellness Coach" },
-  ];
-
-  const startCheckout = async () => {
-    try {
-      setLoading(true);
-
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) {
-        alert("Please sign in first to continue checkout.");
-        router.push("/login");
-        return;
-      }
-
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          coach: selectedCoach,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        alert("Checkout failed");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="page">
       <div className="container">
-
-        <h1 className="title">Choose your next growth path</h1>
+        <h1 className="title">All Features Are Free During Growth</h1>
         <p className="subtitle">
-          Select a coach and a focus area to start your premium experience.
+          My Future AI is in open-access mode to maximize adoption and feedback.
+          You can use every coaching workflow right now with no upgrade step.
         </p>
 
-        <div className="coachGrid">
-          {coaches.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setSelectedCoach(c.id)}
-              className={`coachCard ${selectedCoach === c.id ? "active" : ""}`}
-            >
-              {c.name}
-            </button>
-          ))}
+        <div className="coachGrid" role="list" aria-label="Available coaching systems">
+          <div className="coachCard" role="listitem">💪 Fitness Coach</div>
+          <div className="coachCard" role="listitem">💼 Business Coach</div>
+          <div className="coachCard" role="listitem">📚 Study Coach</div>
+          <div className="coachCard" role="listitem">🧠 Mindset Coach</div>
+          <div className="coachCard" role="listitem">🧘 Therapist Coach</div>
+          <div className="coachCard" role="listitem">⚡ Productivity Coach</div>
         </div>
 
         <div className="premiumBox">
-          <h2>👑 Unlock Premium Coaching</h2>
+          <h2>AI Engine Access Enabled</h2>
           <p>
-            Unlimited premium coach conversations • Memory system • Analytics •
-            Daily missions • Badges • Premium AI workspace
+            Your account includes coaching conversations, memory, analytics,
+            missions, progress loops, and specialized experts.
           </p>
 
           <ul>
-            <li>Unlimited premium coach conversations</li>
-            <li>Seven specialized coaches and memory</li>
-            <li>Personalized analytics and streaks</li>
-            <li>Daily missions, rewards, and badges</li>
-            <li>Priority support and premium themes</li>
+            <li>Personalized coach memory and context-aware guidance</li>
+            <li>Daily missions, streak systems, and XP progression</li>
+            <li>Goal tracking and momentum analytics</li>
+            <li>Adaptive coaching intensity and theme personalization</li>
           </ul>
 
-          <div className="price">$15.99 / month</div>
+          <div className="price">Free</div>
 
-          <button
-            className="cta"
-            onClick={startCheckout}
-            disabled={loading}
-          >
-            {loading ? "Processing..." : "Start My Transformation"}
+          <button className="cta" onClick={() => router.push("/dashboard")}>Enter Dashboard</button>
+          <button className="secondary" onClick={() => router.push("/premium")}>
+            Open Coach Command Center
           </button>
         </div>
       </div>
@@ -144,12 +86,7 @@ export default function PricingPage() {
           background: rgba(255,255,255,0.08);
           border: 1px solid rgba(255,255,255,0.1);
           color: white;
-          cursor: pointer;
           min-height: 44px;
-        }
-
-        .coachCard.active {
-          background: linear-gradient(90deg, #7c3aed, #00b4ff);
         }
 
         .premiumBox {
@@ -187,6 +124,20 @@ export default function PricingPage() {
           font-weight: 700;
           cursor: pointer;
         }
+
+        .secondary {
+          margin-top: 10px;
+          width: 100%;
+          padding: 14px;
+          min-height: 46px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,0.2);
+          background: rgba(255,255,255,0.06);
+          color: white;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
         @media (max-width: 760px) {
           .coachGrid {
             grid-template-columns: 1fr;

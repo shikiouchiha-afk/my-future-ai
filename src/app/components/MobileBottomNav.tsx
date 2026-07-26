@@ -6,7 +6,7 @@ import { triggerHaptic } from "@/lib/mobileFeedback";
 
 const items = [
   { href: "/dashboard", label: "Dashboard", icon: "🏠" },
-  { href: "/premium", label: "Premium", icon: "✨" },
+  { href: "/premium", label: "Coaches", icon: "✨" },
   { href: "/settings", label: "Profile", icon: "👤" },
   { href: "/", label: "Help", icon: "🛟" },
 ];

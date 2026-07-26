@@ -17,7 +17,7 @@ export default function Sidebar() {
       </div>
 
       <div className="mt-auto text-sm text-gray-500">
-        Premium 💎
+        Growth Lab
       </div>
     </div>
   );

@@ -1,3 +1,5 @@
+import { isFreeGrowthModeEnabled } from "@/lib/featureFlags";
+
 export const PREMIUM_EMAILS = ["shikiouchiha@gmail.com"];
 
 export function isPremiumEmail(email?: string | null) {
@@ -11,6 +13,10 @@ export function getPremiumStatus(options?: {
   isAdmin?: boolean | null;
   cookiePremium?: boolean;
 }) {
+  if (isFreeGrowthModeEnabled()) {
+    return true;
+  }
+
   return Boolean(
     options?.isAdmin ||
     options?.profilePremium ||
