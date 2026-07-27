@@ -213,6 +213,51 @@ export default function Home() {
           ))}
         </div>
 
+        {/* Roadmap Principles */}
+        <div className="mt-24 space-y-6">
+          <div className="text-center space-y-2">
+            <p className="text-xs font-bold uppercase tracking-widest text-purple-400/80">Further Considerations</p>
+            <h2 className="text-3xl lg:text-4xl font-bold text-white">Future Roadmap</h2>
+            <p className="text-white/60 max-w-3xl mx-auto">
+              Build a stable foundation first, then scale analytics, multi-coach intelligence, and enterprise admin capabilities.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-purple-500/30 transition-all">
+              <p className="font-bold text-white mb-2">AI Engine Artwork & Visual System</p>
+              <p className="text-sm text-white/50">
+                Use a modular futuristic AI core with galaxy context, neon purple-blue lighting, energy effects, smooth animation, and interactive responses so final artwork can replace the placeholder without redesigning the interface.
+              </p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-cyan-500/30 transition-all">
+              <p className="font-bold text-white mb-2">Analytics Integration (Post-Launch)</p>
+              <p className="text-sm text-white/50">
+                Add PostHog, Mixpanel, or equivalent tools after growth phase to track retention, DAU, feature usage, coaching engagement, session duration, user journeys, drop-off points, and value-driving features.
+              </p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-purple-500/30 transition-all">
+              <p className="font-bold text-white mb-2">Multi-Coach AI Conversations</p>
+              <p className="text-sm text-white/50">
+                Expand to simultaneous coach collaboration in one thread, where Business, Money, Mindset, and Productivity coaches provide specialized guidance while sharing relevant user context.
+              </p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-cyan-500/30 transition-all">
+              <p className="font-bold text-white mb-2">Admin Dashboard Expansion</p>
+              <p className="text-sm text-white/50">
+                Keep admin separate and scalable with user management, analytics, monitoring, AI usage tracking, feedback, feature flags, announcements, content tooling, and security controls.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
+            <p className="text-sm font-bold text-white mb-3">Development Priority</p>
+            <p className="text-sm text-white/60 leading-relaxed">
+              1. Stability and bug-free core experience. 2. Exceptional landing page and onboarding. 3. AI Engine dashboard experience. 4. Personalized AI coaching. 5. User engagement systems. 6. Analytics and growth tools. 7. Advanced AI features. 8. Enterprise/admin capabilities.
+            </p>
+          </div>
+        </div>
+
         {/* CTA Section */}
         <div className="mt-24 text-center space-y-6">
           <h2 className="text-3xl lg:text-4xl font-bold text-white">Ready to build your future?</h2>
@@ -225,6 +270,12 @@ export default function Home() {
           >
             Start Building Now →
           </Link>
+          <p className="text-sm text-white/40 pt-2">
+            Lead Developer: Banks Raphael (Developer Banks)
+          </p>
+          <p className="text-sm text-white/40">
+            Mission: Build the world's leading personal AI mentor with enterprise-grade code quality.
+          </p>
         </div>
       </div>
     </div>
