@@ -29,6 +29,27 @@ alter table if exists public.profiles
 alter table if exists public.profiles
   add column if not exists coaching_intensity text not null default 'balanced';
 
+alter table if exists public.profiles
+  add column if not exists xp integer not null default 0;
+
+alter table if exists public.profiles
+  add column if not exists level integer not null default 1;
+
+alter table if exists public.profiles
+  add column if not exists streak integer not null default 0;
+
+alter table if exists public.profiles
+  add column if not exists last_message_date timestamptz;
+
+alter table if exists public.profiles
+  add column if not exists name text;
+
+alter table if exists public.user_progress
+  add column if not exists session_started_at timestamptz;
+
+alter table if exists public.user_progress
+  add column if not exists session_started_for_date date;
+
 do $$
 begin
   if not exists (

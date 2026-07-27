@@ -52,7 +52,7 @@ export default function AdminPage() {
     };
 
     checkAdmin();
-  }, []);
+  }, [router]);
 
   // =========================
   // LOAD USERS

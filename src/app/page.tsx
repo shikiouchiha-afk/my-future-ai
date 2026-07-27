@@ -274,7 +274,7 @@ export default function Home() {
             Lead Developer: Banks Raphael (Developer Banks)
           </p>
           <p className="text-sm text-white/40">
-            Mission: Build the world's leading personal AI mentor with enterprise-grade code quality.
+            Mission: Build the world&apos;s leading personal AI mentor with enterprise-grade code quality.
           </p>
         </div>
       </div>

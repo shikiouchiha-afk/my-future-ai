@@ -20,9 +20,10 @@ type Message = {
 export default function Dashboard() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState('User');
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
-  const [streak, setStreak] = useState(47);
+  const [streak, setStreak] = useState(0);
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Welcome back! I am your personal AI engine. What shall we work on today?' },
   ]);
@@ -45,24 +46,37 @@ export default function Dashboard() {
       } else {
         setUserId(data.session.user.id);
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('coaching_intensity, streak, xp')
-          .eq('id', data.session.user.id)
-          .single();
+        const [{ data: profile }, { data: progress }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('coaching_intensity, xp, level, name')
+            .eq('id', data.session.user.id)
+            .single(),
+          supabase
+            .from('user_progress')
+            .select('current_streak')
+            .eq('user_id', data.session.user.id)
+            .single(),
+        ]);
 
         if (profile) {
           if (profile.coaching_intensity) {
             setCoachingIntensity(profile.coaching_intensity);
             localStorage.setItem('coachingIntensity', profile.coaching_intensity);
           }
-          // Load real streak and XP from database
-          if (profile.streak !== null) {
-            setStreak(profile.streak);
-          }
           if (profile.xp !== null) {
             setXp(profile.xp);
           }
+          if (profile.level !== null) {
+            setLevel(profile.level);
+          }
+          if (profile.name) {
+            setUserName(profile.name);
+          }
+        }
+
+        if (progress?.current_streak !== null && progress?.current_streak !== undefined) {
+          setStreak(progress.current_streak);
         }
       }
     };
@@ -116,25 +130,19 @@ export default function Dashboard() {
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
 
-    const earnedXp = calculateXP(input);
-    const newXp = xp + earnedXp;
-    setXp(newXp);
-
     setInput('');
     setLoading(true);
 
     try {
-      // Update XP in database
-      if (userId) {
-        await supabase
-          .from('profiles')
-          .update({ xp: newXp })
-          .eq('id', userId);
-      }
+      const { data: authData } = await supabase.auth.getSession();
+      const accessToken = authData.session?.access_token;
 
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify({
           messages: updatedMessages,
           coachingIntensity,
@@ -144,6 +152,10 @@ export default function Dashboard() {
 
       const data = await res.json();
 
+      if (!res.ok) {
+        throw new Error(data?.reply || 'Chat request failed');
+      }
+
       setMessages((prev) => [
         ...prev,
         {
@@ -151,6 +163,21 @@ export default function Dashboard() {
           content: data.reply || 'I could not formulate a response.',
         },
       ]);
+
+      if (data?.progress) {
+        if (typeof data.progress.xp === 'number') {
+          setXp(data.progress.xp);
+        }
+        if (typeof data.progress.level === 'number') {
+          setLevel(data.progress.level);
+        }
+        if (typeof data.progress.streak === 'number') {
+          setStreak(data.progress.streak);
+        }
+      } else {
+        const earnedXp = calculateXP(userMessage.content);
+        setXp((prev) => prev + earnedXp);
+      }
 
       // Update stats slightly
       setFocusLevel((prev) => Math.min(100, prev + Math.random() * 5));
@@ -186,7 +213,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl lg:text-2xl font-bold text-white">THE FUTURE ENGINE</h1>
-                <p className="text-xs lg:text-sm text-white/50 mt-1">Welcome back, Bank 👋</p>
+                <p className="text-xs lg:text-sm text-white/50 mt-1">Welcome back, {userName} 👋</p>
               </div>
               <div className="flex items-center gap-4">
                 <GlassCard className="px-4 py-2 text-center">

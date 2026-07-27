@@ -8,7 +8,7 @@ export default function WelcomeCard() {
       </h2>
 
       <p className="text-gray-400">
-        What's your biggest goal today?
+        What&apos;s your biggest goal today?
       </p>
 
       <div className="flex flex-wrap gap-3 mt-5">

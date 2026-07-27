@@ -6,26 +6,27 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test:mobile": "playwright test tests/mobile-layout.spec.ts",
     "test:mobile:headed": "playwright test tests/mobile-layout.spec.ts --headed",
     "test:mobile:auth": "playwright test tests/mobile-auth.spec.ts",
     "test:mobile:all": "playwright test tests/mobile-layout.spec.ts tests/mobile-auth.spec.ts"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.12.0",
-    "@supabase/supabase-js": "^2.108.2",
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.9",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "next": "^16.2.9",
-    "openai": "^6.42.0",
+    "next": "^16.2.12",
+    "openai": "^6.49.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "stripe": "^22.3.0"
+    "sharp": "^0.35.0",
+    "stripe": "^22.3.2"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
     "@playwright/test": "^1.55.0",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -33,5 +34,8 @@
     "eslint-config-next": "14.2.5",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "8.5.23"
   }
 }

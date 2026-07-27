@@ -55,7 +55,7 @@ export default function CoachChat() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('coaching_intensity, xp')
+          .select('coaching_intensity, xp, level')
           .eq('id', data.session.user.id)
           .single();
 
@@ -66,6 +66,9 @@ export default function CoachChat() {
           // Load real XP from database
           if (profile.xp !== null) {
             setXp(profile.xp);
+          }
+          if (profile.level !== null) {
+            setLevel(profile.level);
           }
         }
       }
@@ -117,25 +120,19 @@ export default function CoachChat() {
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
 
-    const earnedXp = calculateXP(input);
-    const newXp = xp + earnedXp;
-    setXp(newXp);
-
     setInput('');
     setLoading(true);
 
     try {
-      // Update XP in database
-      if (userId) {
-        await supabase
-          .from('profiles')
-          .update({ xp: newXp })
-          .eq('id', userId);
-      }
+      const { data: authData } = await supabase.auth.getSession();
+      const accessToken = authData.session?.access_token;
 
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify({
           messages: updatedMessages,
           coachingIntensity,
@@ -146,6 +143,10 @@ export default function CoachChat() {
 
       const data = await res.json();
 
+      if (!res.ok) {
+        throw new Error(data?.reply || 'Chat request failed');
+      }
+
       setMessages((prev) => [
         ...prev,
         {
@@ -153,6 +154,18 @@ export default function CoachChat() {
           content: data.reply || 'I could not formulate a response.',
         },
       ]);
+
+      if (data?.progress) {
+        if (typeof data.progress.xp === 'number') {
+          setXp(data.progress.xp);
+        }
+        if (typeof data.progress.level === 'number') {
+          setLevel(data.progress.level);
+        }
+      } else {
+        const earnedXp = calculateXP(userMessage.content);
+        setXp((prev) => prev + earnedXp);
+      }
     } catch (error) {
       setMessages((prev) => [
         ...prev,

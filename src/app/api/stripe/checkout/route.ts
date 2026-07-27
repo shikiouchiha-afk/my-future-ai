@@ -2,6 +2,40 @@ import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { getBearerToken, getServerSupabaseClient } from "@/lib/supabaseServer";
 
+function resolveTrustedOrigin(req: Request) {
+  const configuredUrl = process.env.NEXT_PUBLIC_URL;
+  const headerOrigin = req.headers.get("origin");
+
+  if (configuredUrl) {
+    try {
+      const configuredOrigin = new URL(configuredUrl).origin;
+
+      if (!headerOrigin) {
+        return configuredOrigin;
+      }
+
+      try {
+        const incomingOrigin = new URL(headerOrigin).origin;
+        return incomingOrigin === configuredOrigin ? incomingOrigin : configuredOrigin;
+      } catch {
+        return configuredOrigin;
+      }
+    } catch {
+      // Fall through to safer local defaults if NEXT_PUBLIC_URL is invalid.
+    }
+  }
+
+  if (headerOrigin) {
+    try {
+      return new URL(headerOrigin).origin;
+    } catch {
+      return "http://localhost:3000";
+    }
+  }
+
+  return "http://localhost:3000";
+}
+
 export async function POST(req: Request) {
   try {
     const token = getBearerToken(req);
@@ -21,10 +55,7 @@ export async function POST(req: Request) {
 
     const userId = authData.user.id;
 
-    const origin =
-      req.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_URL ||
-      "http://localhost:3000";
+    const origin = resolveTrustedOrigin(req);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
