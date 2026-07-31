@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { fetchProgressSummary } from '@/lib/progress/client';
+import type { ProgressSummary } from '@/lib/progress/types';
 import { Sidebar } from '@/components/Sidebar';
 import { AiEngineCore } from '@/components/AiEngineCore';
 import { StatsPanel } from '@/components/StatsPanel';
@@ -21,21 +23,21 @@ export default function Dashboard() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('User');
-  const [xp, setXp] = useState(0);
-  const [level, setLevel] = useState(1);
-  const [streak, setStreak] = useState(0);
+  const [progress, setProgress] = useState<ProgressSummary | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Welcome back! I am your personal AI engine. What shall we work on today?' },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [coachingIntensity, setCoachingIntensity] = useState<'supportive' | 'balanced' | 'savage'>('balanced');
-  const [focusLevel, setFocusLevel] = useState(92);
-  const [productivity, setProductivity] = useState(88);
-  const [growthRate, setGrowthRate] = useState(94);
 
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
-  const prevLevel = useRef(1);
+
+  const level = progress?.level ?? 1;
+  const streak = progress?.currentStreak ?? 0;
+  const focusLevel = progress?.dailyProgress ?? 0;
+  const productivity = progress?.completionPercentage ?? 0;
+  const growthRate = Math.min(100, streak * 10);
 
   // Auth check
   useEffect(() => {
@@ -46,17 +48,13 @@ export default function Dashboard() {
       } else {
         setUserId(data.session.user.id);
 
-        const [{ data: profile }, { data: progress }] = await Promise.all([
+        const [{ data: profile }, progressSummary] = await Promise.all([
           supabase
             .from('profiles')
-            .select('coaching_intensity, xp, level, name')
+            .select('coaching_intensity, name')
             .eq('id', data.session.user.id)
             .single(),
-          supabase
-            .from('user_progress')
-            .select('current_streak')
-            .eq('user_id', data.session.user.id)
-            .single(),
+          fetchProgressSummary(),
         ]);
 
         if (profile) {
@@ -64,43 +62,19 @@ export default function Dashboard() {
             setCoachingIntensity(profile.coaching_intensity);
             localStorage.setItem('coachingIntensity', profile.coaching_intensity);
           }
-          if (profile.xp !== null) {
-            setXp(profile.xp);
-          }
-          if (profile.level !== null) {
-            setLevel(profile.level);
-          }
           if (profile.name) {
             setUserName(profile.name);
           }
         }
 
-        if (progress?.current_streak !== null && progress?.current_streak !== undefined) {
-          setStreak(progress.current_streak);
+        if (progressSummary) {
+          setProgress(progressSummary);
         }
       }
     };
 
     checkUser();
   }, [router]);
-
-  // XP and level logic
-  const xpNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
-  const calculateXP = (text: string) => {
-    const words = text.trim().split(/\s+/).filter(Boolean).length;
-    if (words < 10) return 2;
-    if (words < 25) return 4;
-    if (words < 60) return 8;
-    return 12;
-  };
-
-  useEffect(() => {
-    const newLevel = Math.floor(xp / 100) + 1;
-    if (newLevel !== level && prevLevel.current !== newLevel) {
-      setLevel(newLevel);
-      prevLevel.current = newLevel;
-    }
-  }, [xp, level]);
 
   // Auto scroll
   const scrollToBottom = () => {
@@ -164,25 +138,6 @@ export default function Dashboard() {
         },
       ]);
 
-      if (data?.progress) {
-        if (typeof data.progress.xp === 'number') {
-          setXp(data.progress.xp);
-        }
-        if (typeof data.progress.level === 'number') {
-          setLevel(data.progress.level);
-        }
-        if (typeof data.progress.streak === 'number') {
-          setStreak(data.progress.streak);
-        }
-      } else {
-        const earnedXp = calculateXP(userMessage.content);
-        setXp((prev) => prev + earnedXp);
-      }
-
-      // Update stats slightly
-      setFocusLevel((prev) => Math.min(100, prev + Math.random() * 5));
-      setProductivity((prev) => Math.min(100, prev + Math.random() * 3));
-      setGrowthRate((prev) => Math.min(100, prev + Math.random() * 2));
     } catch (error) {
       setMessages((prev) => [
         ...prev,

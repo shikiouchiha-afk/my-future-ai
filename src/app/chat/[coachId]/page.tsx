@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { fetchProgressSummary } from '@/lib/progress/client';
+import type { ProgressSummary } from '@/lib/progress/types';
 import { Sidebar } from '@/components/Sidebar';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GalaxyBackground } from '@/components/GalaxyBackground';
@@ -38,11 +40,11 @@ export default function CoachChat() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [coachingIntensity, setCoachingIntensity] = useState<'supportive' | 'balanced' | 'savage'>('balanced');
-  const [xp, setXp] = useState(0);
-  const [level, setLevel] = useState(1);
+  const [progress, setProgress] = useState<ProgressSummary | null>(null);
 
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
-  const prevLevel = useRef(1);
+
+  const level = progress?.level ?? 1;
 
   // Auth check
   useEffect(() => {
@@ -53,46 +55,29 @@ export default function CoachChat() {
       } else {
         setUserId(data.session.user.id);
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('coaching_intensity, xp, level')
-          .eq('id', data.session.user.id)
-          .single();
+        const [{ data: profile }, progressSummary] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('coaching_intensity')
+            .eq('id', data.session.user.id)
+            .single(),
+          fetchProgressSummary(),
+        ]);
 
         if (profile) {
           if (profile.coaching_intensity) {
             setCoachingIntensity(profile.coaching_intensity);
           }
-          // Load real XP from database
-          if (profile.xp !== null) {
-            setXp(profile.xp);
-          }
-          if (profile.level !== null) {
-            setLevel(profile.level);
-          }
+        }
+
+        if (progressSummary) {
+          setProgress(progressSummary);
         }
       }
     };
 
     checkUser();
   }, [router]);
-
-  const xpNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
-  const calculateXP = (text: string) => {
-    const words = text.trim().split(/\s+/).filter(Boolean).length;
-    if (words < 10) return 2;
-    if (words < 25) return 4;
-    if (words < 60) return 8;
-    return 12;
-  };
-
-  useEffect(() => {
-    const newLevel = Math.floor(xp / 100) + 1;
-    if (newLevel !== level && prevLevel.current !== newLevel) {
-      setLevel(newLevel);
-      prevLevel.current = newLevel;
-    }
-  }, [xp, level]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -155,17 +140,6 @@ export default function CoachChat() {
         },
       ]);
 
-      if (data?.progress) {
-        if (typeof data.progress.xp === 'number') {
-          setXp(data.progress.xp);
-        }
-        if (typeof data.progress.level === 'number') {
-          setLevel(data.progress.level);
-        }
-      } else {
-        const earnedXp = calculateXP(userMessage.content);
-        setXp((prev) => prev + earnedXp);
-      }
     } catch (error) {
       setMessages((prev) => [
         ...prev,

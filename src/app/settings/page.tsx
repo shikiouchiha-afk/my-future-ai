@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import MobileBottomNav from "@/app/components/MobileBottomNav";
+import { fetchProgressSummary } from "@/lib/progress/client";
+import type { ProgressSummary } from "@/lib/progress/types";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -11,6 +13,7 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [coachingIntensity, setCoachingIntensity] = useState<"supportive" | "balanced" | "savage">("balanced");
   const [message, setMessage] = useState("");
+  const [summary, setSummary] = useState<ProgressSummary | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -33,6 +36,11 @@ export default function SettingsPage() {
       if (intensity === "supportive" || intensity === "balanced" || intensity === "savage") {
         setCoachingIntensity(intensity);
         localStorage.setItem("coachingIntensity", intensity);
+      }
+
+      const nextSummary = await fetchProgressSummary();
+      if (nextSummary) {
+        setSummary(nextSummary);
       }
     };
     load();
@@ -85,6 +93,24 @@ export default function SettingsPage() {
             ))}
           </div>
         </div>
+        <div className="progressCard">
+          <div>
+            <span>Level</span>
+            <strong>{summary?.level ?? 1}</strong>
+          </div>
+          <div>
+            <span>XP</span>
+            <strong>{summary?.xp ?? 0}</strong>
+          </div>
+          <div>
+            <span>Streak</span>
+            <strong>{summary?.currentStreak ?? 0}</strong>
+          </div>
+          <div>
+            <span>Daily</span>
+            <strong>{summary?.dailyProgress ?? 0}%</strong>
+          </div>
+        </div>
         <button onClick={save}>Save account</button>
         {message ? <p className="message">{message}</p> : null}
       </div>
@@ -98,6 +124,10 @@ export default function SettingsPage() {
         .intensityRow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
         .intensityBtn { border: 1px solid rgba(255,255,255,0.2); border-radius: 999px; min-height: 40px; padding: 8px 12px; background: rgba(255,255,255,0.05); color: white; cursor: pointer; }
         .intensityBtn.active { background: linear-gradient(90deg, #0891b2, #22d3ee); border-color: transparent; }
+        .progressCard { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .progressCard div { border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 10px; background: rgba(255,255,255,0.06); }
+        .progressCard span { display: block; font-size: 0.78rem; color: #bae6fd; }
+        .progressCard strong { font-size: 1rem; margin-top: 4px; display: block; }
         button { margin-top: 12px; width: 100%; border: 0; border-radius: 999px; padding: 12px 16px; min-height: 44px; background: linear-gradient(90deg, #8b5cf6, #22d3ee); color: white; cursor: pointer; }
         .message { margin-top: 10px; color: #a7f3d0; }
         @media (max-width: 640px) { .intensityRow { grid-template-columns: 1fr; } }

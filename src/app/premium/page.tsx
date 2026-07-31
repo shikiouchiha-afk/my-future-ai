@@ -14,13 +14,13 @@ type CoachKey,
 import {
   loadCoachMemory,
   saveCoachMemory,
-  loadOrCreateStreak,
-  updateStreak,
 } from "@/lib/coachMemory";
 import { getStoredTheme, setStoredTheme, themeTokens, type AppTheme } from "@/lib/theme";
 import { getPremiumStatus } from "@/lib/premiumAccess";
 import MobileBottomNav from "@/app/components/MobileBottomNav";
 import { triggerHaptic } from "@/lib/mobileFeedback";
+import { fetchProgressSummary, submitProgressCompletion } from "@/lib/progress/client";
+import type { ProgressSummary } from "@/lib/progress/types";
 
 type Message = {
   role: "user" | "assistant";
@@ -63,13 +63,6 @@ const rewards = [
   "Earn badges for consistency",
 ];
 
-function rewardXP(goal: string | null) {
-  if (goal === "money") return 16;
-  if (goal === "study") return 13;
-  if (goal === "fitness") return 14;
-  return 11;
-}
-
 function generateMission(coach: string | null) {
   const missions: Record<string, string> = {
     business: "Create one business action that moves you closer to growth today.",
@@ -92,13 +85,10 @@ export default function PremiumPage() {
   const [coach, setCoach] = useState<Coach | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [xp, setXp] = useState(0);
-  const [level, setLevel] = useState(1);
+  const [progressSummary, setProgressSummary] = useState<ProgressSummary | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [memory, setMemory] = useState<CoachMemory | null>(null);
-  const [streak, setStreak] = useState({ current_streak: 0, longest_streak: 0, last_active_date: null as string | null, completed_missions: [] as string[], total_progress: 0 });
-  const [completedMissionCount, setCompletedMissionCount] = useState(0);
   const [coachCount, setCoachCount] = useState(7);
   const [theme, setTheme] = useState<AppTheme>("dark");
   const [activeView, setActiveView] = useState<"home" | "chat" | "history" | "profile">("chat");
@@ -112,6 +102,11 @@ export default function PremiumPage() {
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const xp = progressSummary?.xp ?? 0;
+  const level = progressSummary?.level ?? 1;
+  const currentStreak = progressSummary?.currentStreak ?? 0;
+  const completedMissionCount = progressSummary?.actionsToday ?? 0;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -221,16 +216,9 @@ export default function PremiumPage() {
           return;
         }
 
-        const progress = await loadOrCreateStreak(user.id);
-        if (progress) {
-          setStreak({
-            current_streak: progress.current_streak || 0,
-            longest_streak: progress.longest_streak || 0,
-            last_active_date: progress.last_active_date,
-            completed_missions: progress.completed_missions || [],
-            total_progress: progress.total_progress || 0,
-          });
-          setCompletedMissionCount((progress.completed_missions || []).length);
+        const summary = await fetchProgressSummary();
+        if (summary) {
+          setProgressSummary(summary);
         }
 
         setStep("onboarding");
@@ -244,11 +232,6 @@ export default function PremiumPage() {
 
     checkUser();
   }, [router]);
-
-  useEffect(() => {
-    const nextLevel = Math.floor(xp / 100) + 1;
-    setLevel(nextLevel);
-  }, [xp]);
 
   useEffect(() => {
     if (!userId || !coach) return;
@@ -334,9 +317,15 @@ const mission =
     setMessages((current) => [...current, { role: "user", content: text }, { role: "assistant", content: "" }]);
 
     try {
+      const { data: authData } = await supabase.auth.getSession();
+      const accessToken = authData.session?.access_token;
+
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify({
           messages: [...messages, { role: "user", content: text }].slice(-10),
           goal,
@@ -367,8 +356,6 @@ const mission =
           window.clearInterval(interval);
           setIsTyping(false);
           setIsStreaming(false);
-          setXp((current) => current + rewardXP(coach));
-          setCompletedMissionCount((current) => current + 1);
 
           if (userId) {
            const nextMemory: CoachMemory = {
@@ -394,20 +381,21 @@ const mission =
               plans: nextMemory.plans.slice(0, 6),
             });
 
-            const completedMissions = [...streak.completed_missions, text];
             void (async () => {
-              const updatedStreak = await updateStreak(userId, completedMissions);
-              setStreak((current) => ({
-                ...current,
-                current_streak: updatedStreak?.current_streak ?? current.current_streak,
-                longest_streak: updatedStreak?.longest_streak ?? current.longest_streak,
-                last_active_date: updatedStreak?.last_active_date ?? current.last_active_date,
-                completed_missions: updatedStreak?.completed_missions ?? completedMissions,
-                total_progress: current.total_progress + 1,
-              }));
+              const completionId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+              const completionResult = await submitProgressCompletion({
+                completionId,
+                actionType: "coaching_session_completed",
+                source: "premium_chat_reply_completed",
+              });
+
+              if (completionResult.summary) {
+                setProgressSummary(completionResult.summary);
+              }
             })();
-          } else {
-            setStreak((current) => ({ ...current, total_progress: current.total_progress + 1 }));
           }
         }
       }, 18);
@@ -655,7 +643,7 @@ const mission =
           <div className="miniStatsRow">
             <div className="statPill">Lvl {level}</div>
             <div className="statPill">XP {xp}</div>
-            <div className="statPill">🔥 {streak.current_streak}</div>
+              <div className="statPill">🔥 {currentStreak}</div>
           </div>
 
           <div className="panel compactPanel">
@@ -721,7 +709,7 @@ const mission =
                 <div className="miniStats">
                   <span>Lvl {level}</span>
                   <span>XP {xp}</span>
-                  <span>🔥 {streak.current_streak}</span>
+                  <span>🔥 {currentStreak}</span>
                 </div>
               </div>
 

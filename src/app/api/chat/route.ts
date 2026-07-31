@@ -48,14 +48,6 @@ type ExpertMode =
 type EnergyStyle = "calm" | "neutral" | "intense";
 
 type CoachingIntensity = "supportive" | "balanced" | "savage";
-type ChatProgress = {
-  xp: number;
-  level: number;
-  streak: number;
-  streakQualifiedToday: boolean;
-};
-
-const STREAK_MINUTES_REQUIRED = 5;
 const LEAK_PATTERNS: RegExp[] = [
   /IMPORTANT IDENTITY RULE:/gi,
   /Premium Mode:/gi,
@@ -69,24 +61,6 @@ const LEAK_PATTERNS: RegExp[] = [
 
 const MAX_MESSAGE_CHARS = 2000;
 const MAX_MESSAGES = 16;
-
-function calculateMessageXp(text: string) {
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  if (words < 10) return 2;
-  if (words < 25) return 4;
-  if (words < 60) return 8;
-  return 12;
-}
-
-function dateKeyUTC(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function yesterdayKeyUTC(date: Date) {
-  const copy = new Date(date);
-  copy.setUTCDate(copy.getUTCDate() - 1);
-  return dateKeyUTC(copy);
-}
 
 async function resolveAuthorizedUserId(req: Request, requestedUserId?: string) {
   const authHeader = req.headers.get("authorization") || "";
@@ -138,112 +112,6 @@ async function resolveAuthorizedUserId(req: Request, requestedUserId?: string) {
   }
 
   return { userId: data.user.id };
-}
-
-async function applyProgressUpdate(userId: string, userMessage: string): Promise<ChatProgress | null> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    return null;
-  }
-
-  const serviceSupabase = createClient(supabaseUrl, serviceRoleKey);
-  const now = new Date();
-  const today = dateKeyUTC(now);
-  const yesterday = yesterdayKeyUTC(now);
-  const gainedXp = calculateMessageXp(userMessage);
-
-  const { data: profileData } = await serviceSupabase
-    .from("profiles")
-    .select("xp")
-    .eq("id", userId)
-    .single();
-
-  const currentXp = typeof profileData?.xp === "number" ? profileData.xp : 0;
-  const nextXp = currentXp + gainedXp;
-  const nextLevel = Math.floor(nextXp / 100) + 1;
-
-  await serviceSupabase
-    .from("profiles")
-    .update({
-      xp: nextXp,
-      level: nextLevel,
-      last_message_date: now.toISOString(),
-    })
-    .eq("id", userId);
-
-  const { data: progressData } = await serviceSupabase
-    .from("user_progress")
-    .select("current_streak, longest_streak, last_active_date, session_started_at, session_started_for_date")
-    .eq("user_id", userId)
-    .single();
-
-  let currentStreak = progressData?.current_streak ?? 0;
-  let longestStreak = progressData?.longest_streak ?? 0;
-  let lastActiveDate = progressData?.last_active_date ? String(progressData.last_active_date) : null;
-  let sessionStartedForDate = progressData?.session_started_for_date
-    ? String(progressData.session_started_for_date)
-    : null;
-  let sessionStartedAt = progressData?.session_started_at
-    ? new Date(progressData.session_started_at)
-    : null;
-
-  if (!progressData) {
-    await serviceSupabase.from("user_progress").insert({
-      user_id: userId,
-      current_streak: 0,
-      longest_streak: 0,
-      last_active_date: null,
-      session_started_at: now.toISOString(),
-      session_started_for_date: today,
-    });
-    sessionStartedForDate = today;
-    sessionStartedAt = now;
-  }
-
-  if (!sessionStartedAt || sessionStartedForDate !== today) {
-    sessionStartedAt = now;
-    sessionStartedForDate = today;
-  }
-
-  let streakQualifiedToday = lastActiveDate === today;
-  const elapsedMinutes = (now.getTime() - sessionStartedAt.getTime()) / (1000 * 60);
-
-  if (!streakQualifiedToday && elapsedMinutes >= STREAK_MINUTES_REQUIRED) {
-    if (lastActiveDate === yesterday) {
-      currentStreak += 1;
-    } else {
-      currentStreak = 1;
-    }
-    longestStreak = Math.max(longestStreak, currentStreak);
-    lastActiveDate = today;
-    streakQualifiedToday = true;
-  }
-
-  await serviceSupabase
-    .from("user_progress")
-    .update({
-      current_streak: currentStreak,
-      longest_streak: longestStreak,
-      last_active_date: lastActiveDate,
-      session_started_at: sessionStartedAt.toISOString(),
-      session_started_for_date: sessionStartedForDate,
-      updated_at: now.toISOString(),
-    })
-    .eq("user_id", userId);
-
-  await serviceSupabase
-    .from("profiles")
-    .update({ streak: currentStreak })
-    .eq("id", userId);
-
-  return {
-    xp: nextXp,
-    level: nextLevel,
-    streak: currentStreak,
-    streakQualifiedToday,
-  };
 }
 
 function sanitizeLeakText(text: string) {
@@ -677,22 +545,8 @@ export async function POST(req: Request) {
 
     safeReply = ensureActionableEnding(safeReply, goal);
 
-    const latestUserMessage = normalizedMessages
-      .filter((message) => message.role === "user")
-      .slice(-1)[0]?.content;
-
-    let progress: ChatProgress | null = null;
-    if (effectiveUserId && latestUserMessage) {
-      try {
-        progress = await applyProgressUpdate(effectiveUserId, latestUserMessage);
-      } catch (error) {
-        console.error("Progress update error:", error);
-      }
-    }
-
     return NextResponse.json({
       reply: safeReply || "No response",
-      progress,
     });
   } catch (err) {
     console.error("/api/chat failed", err);
