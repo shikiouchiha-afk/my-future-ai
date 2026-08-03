@@ -16,7 +16,7 @@ import {
   saveCoachMemory,
 } from "@/lib/coachMemory";
 import { getStoredTheme, setStoredTheme, themeTokens, type AppTheme } from "@/lib/theme";
-import { getPremiumStatus } from "@/lib/premiumAccess";
+import { getPremiumStatus, getPremiumLimits, getUsageState, PREMIUM_MONTHLY_PRICE_LABEL } from "@/lib/premiumAccess";
 import MobileBottomNav from "@/app/components/MobileBottomNav";
 import { triggerHaptic } from "@/lib/mobileFeedback";
 import { fetchProgressSummary, submitProgressCompletion } from "@/lib/progress/client";
@@ -100,6 +100,9 @@ export default function PremiumPage() {
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const [draftSaved, setDraftSaved] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [dailyMessageCount, setDailyMessageCount] = useState(0);
+  const [monthlyMessageCount, setMonthlyMessageCount] = useState(0);
+  const [advancedSessionCount, setAdvancedSessionCount] = useState(0);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -256,6 +259,18 @@ setMemory({
   }, [coach, userId]);
 
   const startGoal = async (selectedGoal: Goal, selectedCoach: Coach) => {
+    if (!isPremium && selectedCoach !== "free" && advancedSessionCount >= premiumLimits.advancedCoachingSessions) {
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", content: `You have used ${advancedSessionCount}/${premiumLimits.advancedCoachingSessions} advanced coaching sessions on the free plan. Upgrade to ${PREMIUM_MONTHLY_PRICE_LABEL} for unlimited premium coaching, deeper memory, and priority access.` },
+      ]);
+      return;
+    }
+
+    if (!isPremium && selectedCoach !== "free") {
+      setAdvancedSessionCount((count) => count + 1);
+    }
+
     setGoal(selectedGoal);
     setCoach(selectedCoach);
     setStep("app");
@@ -303,6 +318,15 @@ const mission =
     const text = (overrideText ?? input).trim();
     if (!text || isTyping || isStreaming) return;
 
+    if (!usageState.canSendMessage) {
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", content: `${usageState.limitMessage}\n\nTry a shorter prompt or upgrade to Premium for more generous access.` },
+      ]);
+      setConnectionState("ready");
+      return;
+    }
+
     triggerHaptic(12);
 
     setInput("");
@@ -312,6 +336,8 @@ const mission =
     setConnectionState("ready");
     setShouldAutoScroll(true);
     setDraftSaved(false);
+    setDailyMessageCount((count) => count + 1);
+    setMonthlyMessageCount((count) => count + 1);
 
     const memorySummary = buildMemorySummary(memory);
     setMessages((current) => [...current, { role: "user", content: text }, { role: "assistant", content: "" }]);
@@ -437,6 +463,16 @@ const mission =
   const activeCoach = coach ? getCoachProfile(coach) : null;
   const memorySummary = useMemo(() => buildMemorySummary(memory), [memory]);
   const activeTheme = useMemo(() => themeTokens[theme], [theme]);
+  const premiumLimits = useMemo(() => getPremiumLimits({ isPremium }), [isPremium]);
+  const usageState = useMemo(
+    () => getUsageState({
+      isPremium,
+      dailyCount: dailyMessageCount,
+      monthlyCount: monthlyMessageCount,
+      advancedSessionCount,
+    }),
+    [advancedSessionCount, dailyMessageCount, isPremium, monthlyMessageCount]
+  );
 
   if (step === "loading") {
     return <div className="status">Checking premium access...</div>;
@@ -454,16 +490,17 @@ const mission =
       }}
     >
       <div className="oceanGlow" />
+      <div className="halo" />
 
       <div className="onboardCard">
-        <div className="badge">🌊 Premium AI Coaching Suite</div>
+        <div className="badge">✦ Elite AI Coaching Suite</div>
 
         <h1>Choose Your AI Coach</h1>
 
         <p>
           Your future starts with the right guide.
           <br />
-          Pick the AI coach that matches your mission.
+          Pick the coach that fits your mission and unlock a premium experience.
         </p>
 
         <div className="coachGrid">
@@ -543,9 +580,21 @@ const mission =
           position:absolute;
           width:500px;
           height:500px;
-          background:#22d3ee;
+          background:radial-gradient(circle, rgba(250,204,21,.35), transparent 68%);
           filter:blur(180px);
-          opacity:.18;
+          opacity:.22;
+          top:-100px;
+          right:-60px;
+        }
+        .halo {
+          position:absolute;
+          width:420px;
+          height:420px;
+          background:radial-gradient(circle, rgba(34,211,238,.22), transparent 70%);
+          filter:blur(160px);
+          bottom:-100px;
+          left:-90px;
+          opacity:.24;
         }
 
         .onboardCard {
@@ -565,9 +614,10 @@ const mission =
           display:inline-block;
           padding:8px 16px;
           border-radius:999px;
-          background:rgba(34,211,238,.15);
-          color:#67e8f9;
+          background:rgba(250,204,21,.18);
+          color:#fde68a;
           margin-bottom:15px;
+          font-weight:700;
         }
 
         h1 {
@@ -600,8 +650,8 @@ const mission =
 
         button:hover {
           transform:translateY(-8px);
-          border-color:#22d3ee;
-          box-shadow:0 20px 50px rgba(34,211,238,.25);
+          border-color:#f59e0b;
+          box-shadow:0 20px 50px rgba(245,158,11,.25);
         }
 
         button span {
@@ -811,6 +861,7 @@ const mission =
           font-size: 1.05rem;
           font-weight: 700;
           margin-bottom: 4px;
+          color: #fde68a;
         }
         .miniStatsRow {
           display: flex;
@@ -828,6 +879,7 @@ const mission =
           padding: 10px;
           border-radius: 14px;
           background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.08);
         }
         .compactPanel p {
           font-size: 0.9rem;
@@ -855,6 +907,11 @@ const mission =
           background: rgba(255,255,255,0.08);
           color: white;
           cursor: pointer;
+          transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .backBtn:hover {
+          transform: translateY(-2px);
+          background: rgba(245,158,11,0.18);
         }
         .themeSelect {
           border: 1px solid rgba(255,255,255,0.16);
@@ -964,7 +1021,7 @@ const mission =
           box-shadow: 0 10px 30px rgba(0,0,0,0.16);
           font-size: 0.97rem;
         }
-        .bubble.user { align-self: flex-end; background: linear-gradient(135deg, rgba(34,211,238,0.24), rgba(14,165,233,0.2)); }
+        .bubble.user { align-self: flex-end; background: linear-gradient(135deg, rgba(245,158,11,0.24), rgba(34,211,238,0.2)); }
         .bubble.assistant { background: rgba(255,255,255,0.09); }
         .composer { display: flex; gap: 10px; align-items: flex-end; }
         textarea {
@@ -986,10 +1043,15 @@ const mission =
           border-radius: 999px;
           padding: 12px 16px;
           min-height: 48px;
-          background: linear-gradient(90deg, #7c3aed, #22d3ee);
+          background: linear-gradient(90deg, #a16207, #22d3ee);
           color: white;
           cursor: pointer;
           flex-shrink: 0;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 24px rgba(34,211,238,0.16);
         }
         .insightGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
         .status { color: white; padding: 40px; }

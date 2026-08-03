@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      mode: "payment",
+      mode: "subscription",
 
       line_items: [
         {
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
               description:
                 "Premium coaching, memory, analytics, and full AI coach access",
             },
-            unit_amount: 1599, // 💰 $15.99
+            unit_amount: 1199, // 💰 $11.99
           },
           quantity: 1,
         },

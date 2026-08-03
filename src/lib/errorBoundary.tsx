@@ -38,30 +38,32 @@ export class ErrorBoundary extends React.Component<
             style={{
               padding: '16px',
               margin: '12px',
-              borderRadius: '8px',
-              background: 'rgba(239, 68, 68, 0.05)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(15, 23, 42, 0.86))',
+              border: '1px solid rgba(248, 113, 113, 0.28)',
               backdropFilter: 'blur(10px)',
+              color: '#fef2f2',
             }}
           >
-            <p style={{ fontWeight: 'bold', marginBottom: '8px', color: '#fca5a5' }}>
+            <p style={{ fontWeight: '700', marginBottom: '8px', color: '#fecaca' }}>
               ⚠️ Something went wrong
             </p>
-            <p style={{ fontSize: '13px', opacity: 0.7, color: 'rgba(255, 255, 255, 0.6)' }}>
+            <p style={{ fontSize: '13px', opacity: 0.85, lineHeight: 1.6 }}>
               {this.state.error?.message || 'An unexpected error occurred. Please try again.'}
             </p>
             <button
+              type="button"
               onClick={() => this.setState({ hasError: false, error: null })}
               style={{
                 marginTop: '12px',
-                padding: '6px 12px',
-                background: 'rgba(239, 68, 68, 0.2)',
-                border: '1px solid rgba(239, 68, 68, 0.5)',
-                color: '#fca5a5',
-                borderRadius: '4px',
+                padding: '8px 12px',
+                background: 'rgba(248, 113, 113, 0.2)',
+                border: '1px solid rgba(248, 113, 113, 0.45)',
+                color: '#fee2e2',
+                borderRadius: '999px',
                 cursor: 'pointer',
                 fontSize: '12px',
-                fontWeight: '600',
+                fontWeight: '700',
               }}
             >
               Retry

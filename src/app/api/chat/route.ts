@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCoachProfile } from "@/lib/coachSystem";
 import { loadCoachMemory } from "@/lib/coachMemory";
+import { getPremiumLimits, getPremiumStatus } from "@/lib/premiumAccess";
 import { createClient } from "@supabase/supabase-js";
 
 // ============ RATE LIMITING ============
 // Simple in-memory rate limiter: 10 requests per minute per IP
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const usageLimitMap = new Map<string, { dailyCount: number; monthlyCount: number; dailyResetAt: number; monthlyResetAt: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 10;
 
@@ -29,6 +31,41 @@ function checkRateLimit(key: string): { allowed: boolean } {
   }
 
   return { allowed: false };
+}
+
+function checkUsageLimit(userId: string, isPremium: boolean) {
+  const now = Date.now();
+  const record = usageLimitMap.get(userId);
+  const limits = getPremiumLimits({ isPremium });
+
+  if (!record || now > record.dailyResetAt) {
+    usageLimitMap.set(userId, {
+      dailyCount: 0,
+      monthlyCount: 0,
+      dailyResetAt: now + 24 * 60 * 60 * 1000,
+      monthlyResetAt: now + 30 * 24 * 60 * 60 * 1000,
+    });
+  }
+
+  const activeRecord = usageLimitMap.get(userId)!;
+  if (now > activeRecord.monthlyResetAt) {
+    activeRecord.dailyCount = 0;
+    activeRecord.monthlyCount = 0;
+    activeRecord.dailyResetAt = now + 24 * 60 * 60 * 1000;
+    activeRecord.monthlyResetAt = now + 30 * 24 * 60 * 60 * 1000;
+  }
+
+  if (isPremium) {
+    return { allowed: true, dailyCount: activeRecord.dailyCount, monthlyCount: activeRecord.monthlyCount };
+  }
+
+  if (activeRecord.dailyCount >= limits.dailyMessages || activeRecord.monthlyCount >= limits.monthlyMessages) {
+    return { allowed: false, dailyCount: activeRecord.dailyCount, monthlyCount: activeRecord.monthlyCount };
+  }
+
+  activeRecord.dailyCount += 1;
+  activeRecord.monthlyCount += 1;
+  return { allowed: true, dailyCount: activeRecord.dailyCount, monthlyCount: activeRecord.monthlyCount };
 }
 // ============ END RATE LIMITING ============
 
@@ -465,6 +502,35 @@ export async function POST(req: Request) {
 
     const effectiveUserId = authResolution.userId || userId;
 
+    let serverIsPremium = Boolean(isPremium);
+    if (effectiveUserId) {
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      if (supabaseUrl && serviceRoleKey) {
+        const serviceSupabase = createClient(supabaseUrl, serviceRoleKey);
+        const { data: profileData } = await serviceSupabase
+          .from("profiles")
+          .select("is_premium,is_admin")
+          .eq("id", effectiveUserId)
+          .maybeSingle();
+
+        serverIsPremium = getPremiumStatus({
+          profilePremium: profileData?.is_premium,
+          isAdmin: profileData?.is_admin,
+        });
+      }
+    }
+
+    if (effectiveUserId) {
+      const usage = checkUsageLimit(effectiveUserId, serverIsPremium);
+      if (!usage.allowed) {
+        return NextResponse.json(
+          { reply: "Free plan message limit reached. Upgrade to Premium for more generous access.", error: "quota_exceeded" },
+          { status: 429 }
+        );
+      }
+    }
+
     const profile = getCoachProfile(coach);
     const normalizedMessages = normalizeMessages(messages);
     const modes = inferExpertModes(normalizedMessages, coach);
@@ -520,10 +586,10 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: isPremium ? "llama-3.3-70b-versatile" : "llama-3.1-8b-instant",
+        model: serverIsPremium ? "llama-3.3-70b-versatile" : "llama-3.1-8b-instant",
         messages: [{ role: "system", content: systemPrompt }, ...normalizedMessages],
-        temperature: isPremium ? 0.65 : 0.55,
-        max_tokens: isPremium ? 900 : 420,
+        temperature: serverIsPremium ? 0.65 : 0.55,
+        max_tokens: serverIsPremium ? 900 : 420,
         frequency_penalty: 0.25,
         presence_penalty: 0.1,
       }),

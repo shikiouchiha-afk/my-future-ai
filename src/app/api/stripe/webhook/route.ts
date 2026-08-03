@@ -32,7 +32,7 @@ export async function POST(req: Request) {
         .from("profiles")
         .select("is_premium")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       const firstPremiumActivation = !existingProfile?.is_premium;
 
@@ -43,6 +43,16 @@ export async function POST(req: Request) {
           has_seen_premium_animation: firstPremiumActivation ? false : true,
         })
         .eq("id", userId);
+    }
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object as Stripe.Subscription;
+    const userId = subscription.metadata?.userId;
+    const supabase = getServiceRoleSupabaseClient();
+
+    if (userId && supabase) {
+      await supabase.from("profiles").update({ is_premium: false }).eq("id", userId);
     }
   }
 

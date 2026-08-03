@@ -24,7 +24,7 @@
  * → Can re-enable Premium instantly by setting to false
  */
 
-export const FREE_GROWTH_MODE = true;
+export const FREE_GROWTH_MODE = false;
 
 export function isFreeGrowthModeEnabled(): boolean {
   return FREE_GROWTH_MODE;
