@@ -16,7 +16,6 @@ const navItems = [
 ];
 
 const bottomItems = [
-  { icon: '⭐', label: 'Premium', href: '/premium' },
   { icon: '⚙️', label: 'Settings', href: '/settings' },
 ];
 
@@ -88,7 +87,7 @@ export function Sidebar() {
           </div>
           <div className="min-w-0">
             <p className="text-xs font-bold text-white truncate">Bank</p>
-            <p className="text-xs text-white/50 truncate">Premium Member</p>
+            <p className="text-xs text-white/50 truncate">Member</p>
           </div>
         </div>
       </div>
